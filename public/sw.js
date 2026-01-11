@@ -1,9 +1,10 @@
 
-const CACHE_NAME = 'church-app-v1';
+const CACHE_NAME = 'church-app-v2';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon-app.png'
 ];
 
 self.addEventListener('install', event => {
