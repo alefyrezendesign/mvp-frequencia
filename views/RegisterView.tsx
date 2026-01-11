@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Check, X, MessageSquare, FileText, CheckCircle2, ChevronRight, AlertTriangle, ChevronLeft, Clock, ListChecks, Trash2, Loader2 } from 'lucide-react';
+import { Search, Check, X, MessageSquare, FileText, CheckCircle2, ChevronRight, AlertTriangle, ChevronLeft, Clock, ListChecks, Eraser, Loader2 } from 'lucide-react';
 import { AttendanceStatus, Member, Unit } from '../types';
 import { getStatusColor, getNucleoColor, getValidServiceDates } from '../utils';
 import { format, parseISO, addMonths, subMonths, startOfMonth } from 'date-fns';
@@ -216,10 +216,10 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
             {hasRecordsToday && (
               <button
                 onClick={() => setShowClearModal(true)}
-                className="p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-600 hover:text-red-500 transition-all active:scale-95"
-                title="Limpar frequência do dia"
+                className="p-1.5 hover:bg-amber-500/10 rounded-lg text-zinc-600 hover:text-amber-500 transition-all active:scale-95"
+                title="Reiniciar frequência do dia"
               >
-                <Trash2 className="w-4 h-4" />
+                <Eraser className="w-4 h-4" />
               </button>
             )}
             {pendingMembers.length > 0 && (
@@ -289,20 +289,20 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
       {showClearModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Trash2 className="w-8 h-8 text-red-500" />
+            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Eraser className="w-8 h-8 text-amber-500" />
             </div>
-            <h3 className="text-xl font-black text-white mb-2">Limpar Dia?</h3>
+            <h3 className="text-xl font-black text-white mb-2">Reiniciar Dia?</h3>
             <p className="text-sm text-zinc-500 mb-8 font-medium">
-              Tem certeza? Isso vai remover <strong>TODOS</strong> os registros de presença de hoje. Esta ação não pode ser desfeita.
+              Deseja <strong>reiniciar</strong> a chamada de hoje? Isso limpará todas as marcações atuais para que você possa começar de novo.
             </p>
             <div className="space-y-3">
               <button
                 onClick={handleClearDay}
                 disabled={isClearing}
-                className="w-full bg-red-600 hover:bg-red-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-amber-600 hover:bg-amber-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, limpar tudo'}
+                {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, reiniciar'}
               </button>
               <button
                 onClick={() => setShowClearModal(false)}
