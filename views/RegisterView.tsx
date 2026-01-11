@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Check, X, MessageSquare, FileText, CheckCircle2, ChevronRight, AlertTriangle, ChevronLeft, Clock, ListChecks } from 'lucide-react';
+import { Search, Check, X, MessageSquare, FileText, CheckCircle2, ChevronRight, AlertTriangle, ChevronLeft, Clock, ListChecks, Trash2, Loader2 } from 'lucide-react';
 import { AttendanceStatus, Member, Unit } from '../types';
 import { getStatusColor, getNucleoColor, getValidServiceDates } from '../utils';
 import { format, parseISO, addMonths, subMonths, startOfMonth } from 'date-fns';
@@ -22,6 +22,8 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
   const [justificationText, setJustificationText] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     if (showToast) {
@@ -49,13 +51,13 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
     }
   };
 
-  const unitMembers = useMemo(() => 
+  const unitMembers = useMemo(() =>
     store.members.filter((m: Member) => m.unitId === selectedUnit.id && m.active),
-  [store.members, selectedUnit.id]);
+    [store.members, selectedUnit.id]);
 
-  const records = useMemo(() => 
+  const records = useMemo(() =>
     store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.date === selectedDate),
-  [store.attendance, selectedUnit.id, selectedDate]);
+    [store.attendance, selectedUnit.id, selectedDate]);
 
   const currentAttendance = useMemo(() => {
     const present = records.filter((r: any) => r.status === AttendanceStatus.PRESENT).length;
@@ -74,9 +76,9 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
   };
 
   const dateHasJustification = (dateStr: string) => {
-    return store.attendance.some((r: any) => 
-      r.unitId === selectedUnit.id && 
-      r.date === dateStr && 
+    return store.attendance.some((r: any) =>
+      r.unitId === selectedUnit.id &&
+      r.date === dateStr &&
       r.status === AttendanceStatus.JUSTIFIED
     );
   };
@@ -93,24 +95,39 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
     if (filterStatus !== 'all') all = all.filter((m: any) => m.status === filterStatus);
 
     const pending = all.filter((m: any) => m.status === AttendanceStatus.NOT_REGISTERED)
-                       .sort((a: any, b: any) => a.name.localeCompare(b.name));
-    
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+
     const completed = all.filter((m: any) => m.status !== AttendanceStatus.NOT_REGISTERED)
-                         .sort((a: any, b: any) => a.name.localeCompare(b.name));
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
     return { pendingMembers: pending, completedMembers: completed };
   }, [unitMembers, records, searchTerm, filterNucleo, filterStatus]);
 
   const handleStatusUpdate = (memberId: string, newStatus: AttendanceStatus, currentStatus: AttendanceStatus, text?: string) => {
     const finalStatus = currentStatus === newStatus ? AttendanceStatus.NOT_REGISTERED : newStatus;
-    store.updateAttendance({ 
-      memberId, 
-      date: selectedDate, 
-      unitId: selectedUnit.id, 
-      status: finalStatus, 
-      justificationText: finalStatus === AttendanceStatus.JUSTIFIED ? text : undefined 
+    store.updateAttendance({
+      memberId,
+      date: selectedDate,
+      unitId: selectedUnit.id,
+      status: finalStatus,
+      justificationText: finalStatus === AttendanceStatus.JUSTIFIED ? text : undefined
     });
   };
+
+  const handleClearDay = async () => {
+    setIsClearing(true);
+    try {
+      await store.clearAttendanceForDate(selectedUnit.id, selectedDate);
+      setShowClearModal(false);
+      setShowToast(true);
+    } catch (error) {
+      alert('Erro ao limpar dia. Tente novamente.');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const hasRecordsToday = records.length > 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -136,7 +153,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
           </button>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 w-full">
+        <div className="flex flex-wrap justify-center gap-2 w-full md:flex-nowrap">
           {validDates.map(date => {
             const dStr = format(date, 'yyyy-MM-dd');
             const isActive = dStr === selectedDate;
@@ -149,13 +166,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
               <button
                 key={dStr}
                 onClick={() => setSelectedDate(dStr)}
-                className={`relative flex flex-col items-center justify-center w-[calc(20%-8px)] min-w-[54px] aspect-square rounded-2xl transition-all duration-300 border ${
-                  isActive 
-                    ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-600/30 scale-105 z-10' 
-                    : completed
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
-                      : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-800'
-                }`}
+                className={`relative flex flex-col items-center justify-center w-[calc(20%-8px)] md:w-28 aspect-square rounded-2xl transition-all duration-300 border ${isActive
+                  ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-600/30 scale-105 z-10'
+                  : completed
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+                    : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:border-zinc-700 hover:bg-zinc-800'
+                  }`}
               >
                 {/* Container de indicadores no canto superior direito */}
                 <div className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5">
@@ -196,23 +212,34 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
               Chamada ({pendingMembers.length} Pendentes)
             </h3>
           </div>
-          {pendingMembers.length > 0 && (
-            <button 
-              onClick={() => setShowFinalizeModal(true)}
-              className="flex items-center gap-2 bg-purple-600/10 border border-purple-600/20 px-3 py-1.5 rounded-full text-[10px] font-black text-purple-400 uppercase hover:bg-purple-600 hover:text-white transition-all active:scale-95"
-            >
-              Faltas em Massa <ChevronRight className="w-3 h-3" />
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {hasRecordsToday && (
+              <button
+                onClick={() => setShowClearModal(true)}
+                className="p-1.5 hover:bg-red-500/10 rounded-lg text-zinc-600 hover:text-red-500 transition-all active:scale-95"
+                title="Limpar frequência do dia"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+            {pendingMembers.length > 0 && (
+              <button
+                onClick={() => setShowFinalizeModal(true)}
+                className="flex items-center gap-2 bg-purple-600/10 border border-purple-600/20 px-3 py-1.5 rounded-full text-[10px] font-black text-purple-400 uppercase hover:bg-purple-600 hover:text-white transition-all active:scale-95"
+              >
+                Faltas em Massa <ChevronRight className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3">
           {pendingMembers.map((member: any) => (
-            <MemberCard 
-              key={member.id} 
-              member={member} 
-              store={store} 
-              onStatusUpdate={handleStatusUpdate} 
+            <MemberCard
+              key={member.id}
+              member={member}
+              store={store}
+              onStatusUpdate={handleStatusUpdate}
               onJustify={() => { setShowJustifyModal(member.id); setJustificationText(''); }}
             />
           ))}
@@ -238,11 +265,11 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
             {completedMembers.map((member: any) => {
               const currentRecord = records.find((r: any) => r.memberId === member.id);
               return (
-                <MemberCard 
-                  key={member.id} 
-                  member={member} 
-                  store={store} 
-                  onStatusUpdate={handleStatusUpdate} 
+                <MemberCard
+                  key={member.id}
+                  member={member}
+                  store={store}
+                  onStatusUpdate={handleStatusUpdate}
                   onJustify={() => { setShowJustifyModal(member.id); setJustificationText(currentRecord?.justificationText || ''); }}
                   showJustificationIcon={member.status === AttendanceStatus.JUSTIFIED}
                   justificationText={currentRecord?.justificationText}
@@ -259,6 +286,36 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
       </button>
 
       {/* Modals... */}
+      {showClearModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Trash2 className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-black text-white mb-2">Limpar Dia?</h3>
+            <p className="text-sm text-zinc-500 mb-8 font-medium">
+              Tem certeza? Isso vai remover <strong>TODOS</strong> os registros de presença de hoje. Esta ação não pode ser desfeita.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={handleClearDay}
+                disabled={isClearing}
+                className="w-full bg-red-600 hover:bg-red-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, limpar tudo'}
+              </button>
+              <button
+                onClick={() => setShowClearModal(false)}
+                disabled={isClearing}
+                className="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-black text-xs uppercase text-zinc-400 transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showFinalizeModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl animate-in zoom-in-95">
@@ -269,13 +326,13 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
             <p className="text-sm text-zinc-500 mb-8 font-medium">Deseja marcar os {pendingMembers.length} membros restantes como FALTA?</p>
             <div className="space-y-3">
               <button onClick={() => {
-                store.batchUpdateAttendance(pendingMembers.map((m: any) => ({ 
-                  id: Math.random().toString(36).substr(2, 9), 
-                  memberId: m.id, 
-                  date: selectedDate, 
-                  unitId: selectedUnit.id, 
-                  status: AttendanceStatus.ABSENT, 
-                  registeredAt: Date.now() 
+                store.batchUpdateAttendance(pendingMembers.map((m: any) => ({
+                  id: Math.random().toString(36).substr(2, 9),
+                  memberId: m.id,
+                  date: selectedDate,
+                  unitId: selectedUnit.id,
+                  status: AttendanceStatus.ABSENT,
+                  registeredAt: Date.now()
                 })));
                 setShowFinalizeModal(false); setShowToast(true);
               }} className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95">Sim, marcar faltas</button>
@@ -363,19 +420,19 @@ const StatCard = ({ label, value, color }: { label: string, value: string | numb
 
 const ActionButton = ({ children, onClick, active, variant }: any) => {
   const styles = {
-    present: active 
-      ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20' 
+    present: active
+      ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/20'
       : 'bg-zinc-800 text-zinc-500 border-transparent hover:bg-zinc-700/80 hover:border-emerald-500/30 hover:text-emerald-400',
-    absent: active 
-      ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/20' 
+    absent: active
+      ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/20'
       : 'bg-zinc-800 text-zinc-500 border-transparent hover:bg-zinc-700/80 hover:border-rose-500/30 hover:text-rose-400',
-    justified: active 
-      ? 'bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-600/20' 
+    justified: active
+      ? 'bg-amber-600 text-white border-amber-500 shadow-lg shadow-amber-600/20'
       : 'bg-zinc-800 text-zinc-500 border-transparent hover:bg-zinc-700/80 hover:border-amber-500/30 hover:text-amber-400',
   };
   return (
-    <button 
-      onClick={onClick} 
+    <button
+      onClick={onClick}
       className={`flex-1 flex items-center justify-center py-2.5 rounded-xl text-[10px] font-black border transition-all active:scale-[0.98] ${styles[variant as keyof typeof styles]}`}
     >
       {children}

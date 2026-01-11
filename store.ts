@@ -143,6 +143,25 @@ export function useDataStore() {
     }
   };
 
+  const clearAttendanceForDate = async (unitId: string, date: string) => {
+    // 1. Atualiza estado local removendo registros do dia
+    setAttendance(prev => prev.filter(r => !(r.unitId === unitId && r.date === date)));
+
+    if (supabase) {
+      // 2. Remove do banco de dados
+      const { error } = await supabase.from('attendance').delete().match({ unitId, date });
+      if (error) {
+        console.error('Erro ao limpar frequência:', error);
+        throw error;
+      }
+    } else {
+      // Fallback para LocalStorage se necessário (embora o hook sincronize tudo no useEffect)
+      const current = JSON.parse(localStorage.getItem('church_attendance') || '[]');
+      const filtered = current.filter((r: any) => !(r.unitId === unitId && r.date === date));
+      localStorage.setItem('church_attendance', JSON.stringify(filtered));
+    }
+  };
+
   const updateCabinetStatus = async (memberId: string, period: string, status: CabinetFollowUp['status']) => {
     const newItem = { memberId, period, status, lastUpdate: Date.now() };
     setCabinet(prev => {
@@ -184,6 +203,6 @@ export function useDataStore() {
 
   return {
     members, attendance, cabinet, settings, units, nucleos, loading,
-    updateAttendance, batchUpdateAttendance, updateCabinetStatus, saveMember, batchSaveMembers, setSettings: updateSettings
+    updateAttendance, batchUpdateAttendance, clearAttendanceForDate, updateCabinetStatus, saveMember, batchSaveMembers, setSettings: updateSettings
   };
 }
