@@ -3,7 +3,7 @@
   "name": "Controle de Frequência MVP",
   "icons": [
     {
-      "src": "/flavicon.png",
+      "src": "/icon-app.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
