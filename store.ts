@@ -60,6 +60,51 @@ export function useDataStore() {
     loadInitialData();
   }, []);
 
+  // Realtime Subscriptions (Atualização em Tempo Real)
+  useEffect(() => {
+    if (!supabase) return;
+
+    const channel = supabase.channel('db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, (payload) => {
+        if (payload.eventType === 'INSERT') setMembers(prev => [...prev, payload.new as Member]);
+        if (payload.eventType === 'UPDATE') setMembers(prev => prev.map(m => m.id === payload.new.id ? payload.new as Member : m));
+        if (payload.eventType === 'DELETE') setMembers(prev => prev.filter(m => m.id !== payload.old.id));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          const newRecord = payload.new as AttendanceRecord;
+          setAttendance(prev => prev.some(r => r.id === newRecord.id) ? prev : [...prev, newRecord]);
+        }
+        if (payload.eventType === 'UPDATE') {
+          const updated = payload.new as AttendanceRecord;
+          setAttendance(prev => prev.map(r => r.id === updated.id ? updated : r));
+        }
+        if (payload.eventType === 'DELETE') {
+          setAttendance(prev => prev.filter(r => r.id !== payload.old.id));
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cabinet' }, (payload) => {
+        const record = payload.new as CabinetFollowUp;
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          setCabinet(prev => {
+            const filtered = prev.filter(c => !(c.memberId === record.memberId && c.period === record.period));
+            return [...filtered, record];
+          });
+        }
+        // DELETE é complexo sem ID, vamos focar em INSERT/UPDATE que é o principal
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, (payload) => {
+        if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+          setSettings((payload.new as any).data);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Update Methods (Salvando no Banco)
   const updateAttendance = async (record: Omit<AttendanceRecord, 'id' | 'registeredAt'>) => {
     const newRecord = {
