@@ -20,7 +20,7 @@ import SettingsView from './views/SettingsView';
 
 const App: React.FC = () => {
   const store = useDataStore();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => sessionStorage.getItem('church_auth') === 'true');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('church_auth') === 'true');
   const [activeTab, setActiveTab] = useState<AppTab>('register');
   const [selectedUnitId, setSelectedUnitId] = useState<string>(localStorage.getItem('church_last_unit') || UNITS[0].id);
 
@@ -46,6 +46,7 @@ const App: React.FC = () => {
     }
 
     if (data === true) {
+      localStorage.setItem('church_auth', 'true');
       setIsAuthenticated(true);
       return true;
     }
@@ -54,26 +55,9 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    localStorage.removeItem('church_auth');
     setIsAuthenticated(false);
-    // Limpa qualquer estado de sessão se necessário
   };
-
-  useEffect(() => {
-    if (!supabase) return;
-
-    // Verifica sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-    });
-
-    // Escuta mudanças de auth
-    if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        setIsAuthenticated(!!session);
-      });
-      return () => subscription.unsubscribe();
-    }
-  }, []);
 
   useEffect(() => {
     if (store.loading || !isAuthenticated) return;
