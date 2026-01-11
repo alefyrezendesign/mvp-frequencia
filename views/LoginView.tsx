@@ -35,10 +35,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       <div className="w-full max-w-sm flex flex-col items-center">
         {/* Logo Section */}
         <div className="mb-10 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="w-20 h-20 bg-zinc-900 border border-zinc-800 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-purple-600/10">
-            <div className="bg-purple-600 text-white font-black text-xl p-4 rounded-xl shadow-lg shadow-purple-600/40">
-              MVP
-            </div>
+          <div className="w-24 h-24 flex items-center justify-center mx-auto mb-4">
+            <img
+              src="/logo.png"
+              alt="Logo MVP"
+              className="w-full h-full object-contain drop-shadow-2xl"
+            />
           </div>
           <h1 className="text-2xl font-black text-white tracking-tight">Controle de Frequência</h1>
           <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.3em] mt-2">
