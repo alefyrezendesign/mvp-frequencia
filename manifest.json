@@ -1,10 +1,9 @@
-
 {
   "short_name": "Frequência",
   "name": "Controle de Frequência MVP",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3396/3396931.png",
+      "src": "/flavicon.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
