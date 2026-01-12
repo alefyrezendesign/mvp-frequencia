@@ -1,18 +1,18 @@
 {
-  "short_name": "Frequência",
+  "short_name": "Frequência MVP",
   "name": "Controle de Frequência MVP",
   "icons": [
     {
-      "src": "/icon-app.png?v=2",
+      "src": "/icon-app.png?v=3",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-app.png?v=2",
+      "src": "/icon-app.png?v=3",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "start_url": ".",
