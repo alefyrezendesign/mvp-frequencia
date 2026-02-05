@@ -1,31 +1,31 @@
 
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, ShieldCheck, AlertCircle, WifiOff } from 'lucide-react';
 
 interface LoginViewProps {
-  onLogin: (password: string) => Promise<boolean>;
+  onLogin: (password: string) => Promise<{ success: boolean; errorType?: 'INVALID_PASSWORD' | 'SYSTEM_ERROR' }>;
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(false);
+  const [errorType, setErrorType] = useState<'INVALID_PASSWORD' | 'SYSTEM_ERROR' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(false);
+    setErrorType(null);
     setIsLoading(true);
 
     try {
-      const success = await onLogin(password);
-      if (!success) {
-        setError(true);
+      const result = await onLogin(password);
+      if (!result.success) {
+        setErrorType(result.errorType || 'SYSTEM_ERROR');
         setIsLoading(false);
       }
     } catch (err) {
       console.error(err);
-      setError(true);
+      setErrorType('SYSTEM_ERROR');
       setIsLoading(false);
     }
   };
@@ -56,7 +56,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 Senha de Acesso
               </label>
               <div className="relative group">
-                <div className={`absolute inset-y-0 left-4 flex items-center transition-colors ${error ? 'text-rose-500' : 'text-zinc-500 group-focus-within:text-purple-500'}`}>
+                <div className={`absolute inset-y-0 left-4 flex items-center transition-colors ${errorType ? 'text-rose-500' : 'text-zinc-500 group-focus-within:text-purple-500'}`}>
                   <Lock className="w-4 h-4" />
                 </div>
                 <input
@@ -64,10 +64,10 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (error) setError(false);
+                    if (errorType) setErrorType(null);
                   }}
                   placeholder="Digite a senha..."
-                  className={`w-full bg-zinc-950 border ${error ? 'border-rose-500/50 focus:ring-rose-500/20' : 'border-zinc-800 focus:border-purple-600 focus:ring-purple-600/20'} rounded-2xl py-4 pl-12 pr-12 text-sm text-white outline-none ring-4 ring-transparent transition-all placeholder:text-zinc-700`}
+                  className={`w-full bg-zinc-950 border ${errorType ? 'border-rose-500/50 focus:ring-rose-500/20' : 'border-zinc-800 focus:border-purple-600 focus:ring-purple-600/20'} rounded-2xl py-4 pl-12 pr-12 text-sm text-white outline-none ring-4 ring-transparent transition-all placeholder:text-zinc-700`}
                   autoFocus
                 />
                 <button
@@ -79,10 +79,17 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 </button>
               </div>
 
-              {error && (
+              {errorType === 'INVALID_PASSWORD' && (
                 <div className="flex items-center gap-2 text-rose-500 text-[10px] font-bold uppercase tracking-wide mt-2 ml-1 animate-in fade-in slide-in-from-top-1">
                   <AlertCircle className="w-3 h-3" />
                   Senha incorreta. Tente novamente.
+                </div>
+              )}
+
+              {errorType === 'SYSTEM_ERROR' && (
+                <div className="flex items-center gap-2 text-amber-500 text-[10px] font-bold uppercase tracking-wide mt-2 ml-1 animate-in fade-in slide-in-from-top-1">
+                  <WifiOff className="w-3 h-3" />
+                  Sistema indisponível. Tente mais tarde.
                 </div>
               )}
             </div>

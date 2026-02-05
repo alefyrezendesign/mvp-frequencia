@@ -31,10 +31,10 @@ const App: React.FC = () => {
     store.units.find(u => u.id === selectedUnitId) || store.units[0],
     [selectedUnitId, store.units]);
 
-  const handleLogin = async (password: string) => {
+  const handleLogin = async (password: string): Promise<{ success: boolean; errorType?: 'INVALID_PASSWORD' | 'SYSTEM_ERROR' }> => {
     if (!supabase) {
       console.error('Supabase não configurado! Verifique o .env.local');
-      return false;
+      return { success: false, errorType: 'SYSTEM_ERROR' };
     }
 
     // Validação Segura via RPC (Banco de Dados)
@@ -42,16 +42,16 @@ const App: React.FC = () => {
 
     if (error) {
       console.error('Erro ao validar senha:', error.message);
-      return false;
+      return { success: false, errorType: 'SYSTEM_ERROR' };
     }
 
     if (data === true) {
       localStorage.setItem('church_auth', 'true');
       setIsAuthenticated(true);
-      return true;
+      return { success: true };
     }
 
-    return false;
+    return { success: false, errorType: 'INVALID_PASSWORD' };
   };
 
   const handleLogout = async () => {
