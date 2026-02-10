@@ -1,11 +1,12 @@
 
 import React from 'react';
-import { 
-  ClipboardList, 
-  LayoutDashboard, 
-  Users, 
-  HeartHandshake, 
-  Lightbulb 
+import {
+  ClipboardList,
+  LayoutDashboard,
+  Users,
+  HeartHandshake,
+  Lightbulb,
+  Crown
 } from 'lucide-react';
 import { AppTab } from '../types';
 
@@ -19,7 +20,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
     { id: 'register', label: 'Registrar', icon: ClipboardList },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'members', label: 'Membros', icon: Users },
-    { id: 'followup', label: 'Pastoral', icon: HeartHandshake },
+    { id: 'leadership', label: 'Líderes', icon: Crown },
+    { id: 'followup', label: 'Acompanhar', icon: HeartHandshake },
     { id: 'tips', label: 'Dicas', icon: Lightbulb },
   ];
 
@@ -30,9 +32,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as AppTab)}
-            className={`flex flex-col items-center flex-1 transition-all duration-300 py-1 ${
-              activeTab === tab.id ? 'text-purple-500 scale-110' : 'text-zinc-500 hover:text-zinc-300'
-            }`}
+            className={`flex flex-col items-center flex-1 transition-all duration-300 py-1 ${activeTab === tab.id ? 'text-purple-500 scale-110' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
           >
             <tab.icon className={`w-6 h-6 mb-1 ${activeTab === tab.id ? 'fill-purple-500/20' : ''}`} />
             <span className="text-[10px] font-medium">{tab.label}</span>

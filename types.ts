@@ -7,9 +7,11 @@ export enum AttendanceStatus {
 }
 
 export enum CabinetStatus {
-  PENDING = 'Gabinete a agendar',
-  SCHEDULED = 'Gabinete agendado',
-  DONE = 'Gabinete realizado'
+  AGUARDANDO = 'Selecionar Status',
+  LIDER_INFORMADO = 'Líder informado',
+  PRIMEIRO_CONTATO = 'Primeiro contato - realizado',
+  CONVERSA_REALIZADA = 'Conversa 1a1 realizada',
+  SOLUCIONADO = 'Solucionado'
 }
 
 export enum FrequencyCategory {
@@ -17,6 +19,14 @@ export enum FrequencyCategory {
   GOOD = 'Frequência Boa',
   LOW = 'Frequência Baixa',
   CRITICAL = 'Frequência Crítica'
+}
+
+export interface Leader {
+  id: string;
+  unit_id: string;
+  generation: string;
+  name: string;
+  phone: string;
 }
 
 export interface Unit {
@@ -32,10 +42,14 @@ export interface Nucleo {
   color?: string; // Tailwind color name (e.g., 'rose', 'amber')
 }
 
+export type MemberRole = 'Membro' | 'Obreiro/Líder' | 'Voluntário';
+
 export interface Member {
   id: string;
   name: string;
-  nucleoId: string;
+  nucleoId: string; // Mantido para compatibilidade, mas usado como fallback
+  generation?: string; // Novo campo: Berçário, Kids, Teens, Jovens, Homens, Mulheres, Anciões
+  role?: MemberRole; // Novo campo: Membro, Obreiro/Líder, Voluntário
   unitId: string;
   active: boolean;
   notes?: string;
@@ -68,4 +82,4 @@ export interface AppSettings {
   };
 }
 
-export type AppTab = 'register' | 'dashboard' | 'members' | 'followup' | 'tips' | 'settings';
+export type AppTab = 'register' | 'dashboard' | 'members' | 'leadership' | 'followup' | 'tips' | 'settings';

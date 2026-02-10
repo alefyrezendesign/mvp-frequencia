@@ -11,6 +11,31 @@ export const UNITS: Unit[] = [
 // A verificação deve ser feita via Backend/Supabase Auth.
 export const MASTER_KEY = '';
 
+export const GENERATIONS = [
+  'Berçário',
+  'Kids',
+  'Teens',
+  'Jovens',
+  'Homens',
+  'Mulheres',
+  'Anciões'
+] as const;
+
+export type GenerationType = typeof GENERATIONS[number];
+
+export const GENERATION_COLORS: Record<GenerationType, string> = {
+  'Berçário': 'text-pink-500 border-pink-500/20 bg-pink-500/10',
+  'Kids': 'text-amber-500 border-amber-500/20 bg-amber-500/10',
+  'Teens': 'text-cyan-500 border-cyan-500/20 bg-cyan-500/10',
+  'Jovens': 'text-purple-500 border-purple-500/20 bg-purple-500/10',
+  'Homens': 'text-blue-500 border-blue-500/20 bg-blue-500/10',
+  'Mulheres': 'text-rose-500 border-rose-500/20 bg-rose-500/10',
+  'Anciões': 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10'
+};
+
+export const ROLES = ['Membro', 'Obreiro/Líder', 'Voluntário'] as const;
+
+// Mantido apenas para cores e compatibilidade visual de legado
 export const NUCLEOS: Nucleo[] = [
   { id: 'n1', name: 'Berçário', color: 'pink' },
   { id: 'n2', name: 'Kids', color: 'amber' },

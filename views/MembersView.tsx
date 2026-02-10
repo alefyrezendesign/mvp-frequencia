@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { Search, Plus, UserPlus, Edit2, FileUp, X, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Member, Unit, Nucleo } from '../types';
-import { getNucleoColor } from '../utils';
+import { Member, Unit, MemberRole, Nucleo } from '../types';
+import { GENERATIONS, ROLES, GENERATION_COLORS, GenerationType } from '../constants';
 
 interface MembersViewProps {
   store: any;
@@ -40,6 +40,7 @@ const MembersView: React.FC<MembersViewProps> = ({ store, selectedUnit }) => {
               setShowAddModal(true);
             }}
             className="bg-purple-600 p-2.5 rounded-xl text-white shadow-lg shadow-purple-600/20 active:scale-95 transition-transform"
+            title="Adicionar Membro"
           >
             <Plus className="w-6 h-6" />
           </button>
@@ -68,9 +69,16 @@ const MembersView: React.FC<MembersViewProps> = ({ store, selectedUnit }) => {
                 </div>
                 <div>
                   <p className="font-semibold text-zinc-200">{member.name}</p>
-                  <p className={`text-[10px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded border inline-block ${getNucleoColor(nucleo?.color)}`}>
-                    {nucleo?.name || 'Geral'}
-                  </p>
+                  <div className="flex gap-2 mt-1">
+                    <span className={`text-[9px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded border ${GENERATION_COLORS[member.generation as GenerationType] || 'text-zinc-500 border-zinc-700 bg-zinc-800'}`}>
+                      {member.generation || 'Sem Geração'}
+                    </span>
+                    {member.role && (
+                      <span className="text-[9px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded border border-zinc-700 bg-zinc-800 text-zinc-400">
+                        {member.role}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -80,6 +88,7 @@ const MembersView: React.FC<MembersViewProps> = ({ store, selectedUnit }) => {
                     setShowAddModal(true);
                   }}
                   className="p-2 text-zinc-500 hover:text-purple-400 transition-colors"
+                  aria-label="Editar Membro"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -100,6 +109,7 @@ const MembersView: React.FC<MembersViewProps> = ({ store, selectedUnit }) => {
         <MemberFormModal
           onClose={() => setShowAddModal(false)}
           saveMember={store.saveMember}
+          deleteMember={store.deleteMember}
           initialData={editingMember}
           unitId={selectedUnit.id}
           nucleos={store.nucleos}
@@ -143,18 +153,19 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
           const cols = line.includes(';') ? line.split(';') : line.split(',');
 
           const name = cols[0]?.trim();
-          const nucleoName = cols[1]?.trim();
+          const generationName = cols[1]?.trim();
 
           if (!name) continue;
 
-          const matchedNucleo = nucleos.find((n: Nucleo) =>
-            n.name.toLowerCase() === nucleoName?.toLowerCase()
-          );
+          // Tentativa de encontrar a geração compatível (case insensitive)
+          const matchedGeneration = GENERATIONS.find(g => g.toLowerCase() === generationName?.toLowerCase()) || GENERATIONS[0];
 
           newMembers.push({
             id: Math.random().toString(36).substr(2, 9),
             name,
-            nucleoId: matchedNucleo?.id || nucleos[0]?.id || 'n6',
+            nucleoId: '', // Nucleo deprecado
+            generation: matchedGeneration,
+            role: 'Membro',
             unitId,
             active: true
           });
@@ -174,7 +185,7 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent = "Nome,Núcleo\nFulano de Tal,Membro\nBeltrana,Kids";
+    const csvContent = "Nome,Geração\nFulano de Tal,Jovens\nBeltrana,Kids";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -191,7 +202,7 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
             <h3 className="text-xl font-black text-white tracking-tight">Importar Membros</h3>
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Carregamento em massa via CSV</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-full transition-colors" aria-label="Fechar Modal">
             <X className="w-5 h-5 text-zinc-500" />
           </button>
         </div>
@@ -206,7 +217,7 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
                 <p className="text-xs font-bold text-zinc-200">Instruções de Formatação</p>
                 <p className="text-[11px] text-zinc-500 leading-relaxed mt-1">
                   Seu arquivo CSV deve conter 2 colunas na ordem exata: <br />
-                  <span className="text-zinc-300 font-bold">Nome, Núcleo</span>
+                  <span className="text-zinc-300 font-bold">Nome, Geração</span>
                 </p>
               </div>
             </div>
@@ -229,6 +240,7 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
                 onChange={processFile}
                 accept=".csv"
                 className="hidden"
+                aria-label="Arquivo CSV"
               />
               <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                 <FileUp className="w-8 h-8 text-zinc-700 group-hover:text-purple-500" />
@@ -249,8 +261,8 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
                   <div key={idx} className="bg-zinc-950/50 border border-zinc-800 rounded-xl p-3 flex items-center justify-between">
                     <div className="flex flex-col">
                       <span className="text-xs font-bold text-zinc-200 truncate max-w-[200px]">{m.name}</span>
-                      <span className="text-[9px] text-zinc-600 font-bold uppercase">
-                        {nucleos.find((n: Nucleo) => n.id === m.nucleoId)?.name}
+                      <span className={`text-[9px] font-bold uppercase tracking-tight px-1.5 py-0.5 rounded border ${GENERATION_COLORS[m.generation as GenerationType] || 'text-zinc-500 border-zinc-700 bg-zinc-800'}`}>
+                        {m.generation || 'Sem Geração'}
                       </span>
                     </div>
                   </div>
@@ -290,10 +302,12 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
   );
 };
 
-const MemberFormModal = ({ onClose, saveMember, initialData, unitId, nucleos }: any) => {
+const MemberFormModal = ({ onClose, saveMember, deleteMember, initialData, unitId, nucleos }: any) => {
   const [formData, setFormData] = useState<Partial<Member>>(initialData || {
     name: '',
     nucleoId: nucleos[0]?.id || '',
+    generation: GENERATIONS[0],
+    role: ROLES[0] as MemberRole,
     unitId: unitId,
     active: true
   });
@@ -305,6 +319,13 @@ const MemberFormModal = ({ onClose, saveMember, initialData, unitId, nucleos }: 
       id: initialData?.id || Math.random().toString(36).substr(2, 9)
     } as Member);
     onClose();
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('Tem certeza que deseja EXCLUIR este membro permanentemente? Esta ação não pode ser desfeita e apagará todo o histórico de frequência.')) {
+      deleteMember(initialData.id);
+      onClose();
+    }
   };
 
   return (
@@ -323,15 +344,32 @@ const MemberFormModal = ({ onClose, saveMember, initialData, unitId, nucleos }: 
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Núcleo</label>
-            <select
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-sm text-white outline-none focus:border-purple-600 appearance-none"
-              value={formData.nucleoId}
-              onChange={e => setFormData({ ...formData, nucleoId: e.target.value })}
-            >
-              {nucleos.map((n: any) => <option key={n.id} value={n.id}>{n.name}</option>)}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Geração</label>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-sm text-white outline-none focus:border-purple-600 appearance-none"
+                value={formData.generation}
+                onChange={e => setFormData({ ...formData, generation: e.target.value })}
+                aria-label="Selecione a Geração"
+              >
+                <option value="">Selecione...</option>
+                {GENERATIONS.map((gen) => <option key={gen} value={gen}>{gen}</option>)}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Cargo</label>
+              <select
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-sm text-white outline-none focus:border-purple-600 appearance-none"
+                value={formData.role}
+                onChange={e => setFormData({ ...formData, role: e.target.value as MemberRole })}
+                aria-label="Selecione o Cargo"
+              >
+                <option value="">Selecione...</option>
+                {ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 p-4 bg-zinc-950 rounded-2xl border border-zinc-800">
@@ -345,11 +383,23 @@ const MemberFormModal = ({ onClose, saveMember, initialData, unitId, nucleos }: 
             <label htmlFor="active-member" className="text-xs font-bold text-zinc-400 cursor-pointer">Membro Ativo e Visível</label>
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest">Cancelar</button>
-            <button type="submit" className="flex-[2] bg-purple-600 py-4 rounded-2xl text-xs font-black text-white uppercase tracking-widest shadow-lg shadow-purple-600/20 active:scale-[0.98] transition-all">
-              {initialData ? 'Atualizar' : 'Salvar Membro'}
-            </button>
+          <div className="flex flex-col gap-3 pt-4">
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose} className="flex-1 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest">Cancelar</button>
+              <button type="submit" className="flex-[2] bg-purple-600 py-4 rounded-2xl text-xs font-black text-white uppercase tracking-widest shadow-lg shadow-purple-600/20 active:scale-[0.98] transition-all">
+                {initialData ? 'Atualizar' : 'Salvar Membro'}
+              </button>
+            </div>
+
+            {initialData && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="w-full py-3 rounded-2xl border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 text-[10px] font-black uppercase tracking-widest transition-all"
+              >
+                Excluir Membro Permanentemente
+              </button>
+            )}
           </div>
         </form>
       </div>

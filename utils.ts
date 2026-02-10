@@ -34,36 +34,36 @@ export const getNucleoColor = (colorName: string = 'zinc') => {
  */
 export const getAbsenceCategory = (absences: number) => {
   if (absences === 0) {
-    return { 
-      label: FrequencyCategory.PERFECT, 
-      color: 'text-emerald-400', 
-      bg: 'bg-emerald-500/10', 
+    return {
+      label: FrequencyCategory.PERFECT,
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-500/10',
       dot: 'bg-emerald-500',
       chartColor: '#10b981'
     };
   }
   if (absences <= 2) {
-    return { 
-      label: FrequencyCategory.GOOD, 
-      color: 'text-blue-400', 
-      bg: 'bg-blue-500/10', 
+    return {
+      label: FrequencyCategory.GOOD,
+      color: 'text-blue-400',
+      bg: 'bg-blue-500/10',
       dot: 'bg-blue-500',
       chartColor: '#3b82f6'
     };
   }
   if (absences <= 4) {
-    return { 
-      label: FrequencyCategory.LOW, 
-      color: 'text-amber-400', 
-      bg: 'bg-amber-500/10', 
+    return {
+      label: FrequencyCategory.LOW,
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/10',
       dot: 'bg-amber-500',
       chartColor: '#f59e0b'
     };
   }
-  return { 
-    label: FrequencyCategory.CRITICAL, 
-    color: 'text-rose-400', 
-    bg: 'bg-rose-500/10', 
+  return {
+    label: FrequencyCategory.CRITICAL,
+    color: 'text-rose-400',
+    bg: 'bg-rose-500/10',
     dot: 'bg-rose-500',
     chartColor: '#ef4444'
   };
@@ -80,12 +80,54 @@ export const calculateAttendance = (memberRecords: AttendanceRecord[], totalExpe
   const presences = memberRecords.filter(r => r.status === AttendanceStatus.PRESENT).length;
   const absences = memberRecords.filter(r => r.status === AttendanceStatus.ABSENT).length;
   const justifications = memberRecords.filter(r => r.status === AttendanceStatus.JUSTIFIED).length;
-  
+
   let effectivePresences = presences;
   if (settings.justifiedCountsAsPresence) {
     effectivePresences += justifications;
   }
-  
+
   const percent = totalExpected > 0 ? (effectivePresences / totalExpected) * 100 : 0;
   return { presences, absences, justifications, percent };
+};
+
+export const normalizePhone = (phone: string) => {
+  // Remove tudo que não é número
+  const digits = phone.replace(/\D/g, '');
+  // Adiciona código do país Brasil (55) se não tiver (assumindo que seja BR se tiver 10 ou 11 dígitos)
+  if (digits.length >= 10 && digits.length <= 11) {
+    return `55${digits}`;
+  }
+  return digits;
+};
+
+export const generateWhatsAppLink = (
+  leaderName: string,
+  leaderPhone: string,
+  memberName: string,
+  role: string,
+  unitName: string,
+  period: string,
+  stats: { presences: number; absences: number; justifications: number; percent: number },
+  category: string
+) => {
+  const phone = normalizePhone(leaderPhone);
+  const faultPercent = 100 - stats.percent;
+
+  const text = `Olá, ${leaderName}! Tudo bem?
+
+Passando para informar a frequência de ${memberName} (${role}) na unidade ${unitName}.
+
+No mês de ${period}, tivemos:
+• ${stats.absences} faltas
+• ${stats.presences} presenças
+• ${stats.justifications} justificativas
+
+Sinalizado como: ${category}
+Percentual de faltas: ${faultPercent.toFixed(0)}%
+
+Peço, por favor, que faça um contato e alinhe uma conversa com ${memberName} para entendermos o que está acontecendo e então ajudarmos a regularizar a frequência.
+
+Obrigado(a)!`;
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 };

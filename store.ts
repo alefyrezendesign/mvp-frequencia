@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Member, AttendanceRecord, CabinetFollowUp, AppSettings, Unit, Nucleo, AttendanceStatus } from './types';
+import { Member, AttendanceRecord, CabinetFollowUp, AppSettings, Unit, Nucleo, AttendanceStatus, Leader } from './types';
 import { MOCK_MEMBERS, UNITS, NUCLEOS, INITIAL_SETTINGS } from './constants';
 
 import { supabase } from './services/supabase';
@@ -10,6 +10,7 @@ export function useDataStore() {
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [cabinet, setCabinet] = useState<CabinetFollowUp[]>([]);
   const [settings, setSettings] = useState<AppSettings>(INITIAL_SETTINGS);
+  const [leaders, setLeaders] = useState<Leader[]>([]);
   const [units] = useState<Unit[]>(UNITS);
   const [nucleos] = useState<Nucleo[]>(NUCLEOS);
   const [loading, setLoading] = useState(true);
@@ -23,18 +24,21 @@ export function useDataStore() {
             { data: dbMembers },
             { data: dbAttendance },
             { data: dbCabinet },
-            { data: dbSettings }
+            { data: dbSettings },
+            { data: dbLeaders }
           ] = await Promise.all([
             supabase.from('members').select('*'),
             supabase.from('attendance').select('*'),
             supabase.from('cabinet').select('*'),
-            supabase.from('settings').select('data').single()
+            supabase.from('settings').select('data').single(),
+            supabase.from('leaders').select('*')
           ]);
 
           if (dbMembers) setMembers(dbMembers);
           if (dbAttendance) setAttendance(dbAttendance);
           if (dbCabinet) setCabinet(dbCabinet);
           if (dbSettings?.data) setSettings(dbSettings.data);
+          if (dbLeaders) setLeaders(dbLeaders);
         } catch (error) {
           console.error('Erro ao carregar do Supabase:', error);
           loadFromLocalStorage();
@@ -97,6 +101,11 @@ export function useDataStore() {
         if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
           setSettings((payload.new as any).data);
         }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leaders' }, (payload) => {
+        if (payload.eventType === 'INSERT') setLeaders(prev => [...prev, payload.new as Leader]);
+        if (payload.eventType === 'UPDATE') setLeaders(prev => prev.map(l => l.id === payload.new.id ? payload.new as Leader : l));
+        if (payload.eventType === 'DELETE') setLeaders(prev => prev.filter(l => l.id !== payload.old.id));
       })
       .subscribe();
 
@@ -201,8 +210,26 @@ export function useDataStore() {
     }
   };
 
+  const saveLeader = async (leader: Leader) => {
+    setLeaders(prev => {
+      const exists = prev.find(l => l.id === leader.id);
+      return exists ? prev.map(l => l.id === leader.id ? leader : l) : [...prev, leader];
+    });
+
+    if (supabase) {
+      await supabase.from('leaders').upsert(leader);
+    }
+  };
+
+  const deleteMember = async (memberId: string) => {
+    setMembers(prev => prev.filter(m => m.id !== memberId));
+    if (supabase) {
+      await supabase.from('members').delete().match({ id: memberId });
+    }
+  };
+
   return {
-    members, attendance, cabinet, settings, units, nucleos, loading,
-    updateAttendance, batchUpdateAttendance, clearAttendanceForDate, updateCabinetStatus, saveMember, batchSaveMembers, setSettings: updateSettings
+    members, attendance, cabinet, settings, units, nucleos, leaders, loading,
+    updateAttendance, batchUpdateAttendance, clearAttendanceForDate, updateCabinetStatus, saveMember, deleteMember, batchSaveMembers, setSettings: updateSettings, saveLeader
   };
 }

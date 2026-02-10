@@ -17,6 +17,7 @@ import FollowUpView from './views/FollowUpView';
 import TipsView from './views/TipsView';
 import LoginView from './views/LoginView';
 import SettingsView from './views/SettingsView';
+import LeadershipView from './views/LeadershipView';
 
 const App: React.FC = () => {
   const store = useDataStore();
@@ -91,6 +92,8 @@ const App: React.FC = () => {
         return <DashboardView store={store} selectedUnit={selectedUnit} />;
       case 'members':
         return <MembersView store={store} selectedUnit={selectedUnit} />;
+      case 'leadership':
+        return <LeadershipView store={store} selectedUnit={selectedUnit} />;
       case 'followup':
         return <FollowUpView store={store} selectedUnit={selectedUnit} />;
       case 'tips':

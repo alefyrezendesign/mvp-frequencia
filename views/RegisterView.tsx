@@ -2,9 +2,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Check, X, MessageSquare, FileText, CheckCircle2, ChevronRight, AlertTriangle, ChevronLeft, Clock, ListChecks, Eraser, Loader2 } from 'lucide-react';
 import { AttendanceStatus, Member, Unit } from '../types';
-import { getStatusColor, getNucleoColor, getValidServiceDates } from '../utils';
+import { getStatusColor, getValidServiceDates } from '../utils';
 import { format, parseISO, addMonths, subMonths, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { GENERATIONS, GENERATION_COLORS, GenerationType } from '../constants';
 
 interface RegisterViewProps {
   store: any;
@@ -15,7 +16,7 @@ interface RegisterViewProps {
 
 const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, selectedDate, setSelectedDate }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterNucleo, setFilterNucleo] = useState('all');
+  const [filterGeneration, setFilterGeneration] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showJustifyModal, setShowJustifyModal] = useState<string | null>(null);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
@@ -91,7 +92,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
     });
 
     if (searchTerm) all = all.filter((m: any) => m.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    if (filterNucleo !== 'all') all = all.filter((m: any) => m.nucleoId === filterNucleo);
+    if (filterGeneration !== 'all') all = all.filter((m: any) => m.generation === filterGeneration);
     if (filterStatus !== 'all') all = all.filter((m: any) => m.status === filterStatus);
 
     const pending = all.filter((m: any) => m.status === AttendanceStatus.NOT_REGISTERED)
@@ -101,7 +102,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
 
     return { pendingMembers: pending, completedMembers: completed };
-  }, [unitMembers, records, searchTerm, filterNucleo, filterStatus]);
+  }, [unitMembers, records, searchTerm, filterGeneration, filterStatus]);
 
   const handleStatusUpdate = (memberId: string, newStatus: AttendanceStatus, currentStatus: AttendanceStatus, text?: string) => {
     const finalStatus = currentStatus === newStatus ? AttendanceStatus.NOT_REGISTERED : newStatus;
@@ -142,13 +143,13 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
       {/* BLOCO DE DATA E ESTATÍSTICAS - ROLA COM A TELA */}
       <div className="flex flex-col gap-4 mb-2 animate-in fade-in duration-500">
         <div className="flex items-center justify-between w-full px-1">
-          <button onClick={() => handleMonthChange('prev')} className="p-2 hover:bg-zinc-900 rounded-full text-zinc-600 transition-colors">
+          <button onClick={() => handleMonthChange('prev')} className="p-2 hover:bg-zinc-900 rounded-full text-zinc-600 transition-colors" title="Mês Anterior">
             <ChevronLeft className="w-6 h-6" />
           </button>
           <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400 capitalize">
             {monthDisplay}
           </h2>
-          <button onClick={() => handleMonthChange('next')} className="p-2 hover:bg-zinc-900 rounded-full text-zinc-600 transition-colors">
+          <button onClick={() => handleMonthChange('next')} className="p-2 hover:bg-zinc-900 rounded-full text-zinc-600 transition-colors" title="Próximo Mês">
             <ChevronRight className="w-6 h-6" />
           </button>
         </div>
@@ -281,7 +282,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
       )}
 
       {/* Floating Action Search Button */}
-      <button onClick={() => setIsSearchOpen(!isSearchOpen)} className={`fixed right-6 bottom-28 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isSearchOpen ? 'bg-zinc-800 rotate-90 text-zinc-100' : 'bg-purple-600 text-white shadow-purple-600/40 hover:bg-purple-500'}`}>
+      <button onClick={() => setIsSearchOpen(!isSearchOpen)} className={`fixed right-6 bottom-28 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isSearchOpen ? 'bg-zinc-800 rotate-90 text-zinc-100' : 'bg-purple-600 text-white shadow-purple-600/40 hover:bg-purple-500'}`} aria-label={isSearchOpen ? "Fechar Busca" : "Abrir Busca"}>
         {isSearchOpen ? <X className="w-6 h-6" /> : <Search className="w-6 h-6" />}
       </button>
 
@@ -358,12 +359,12 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
       {isSearchOpen && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm pt-40 px-6 animate-in fade-in">
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl max-w-lg mx-auto animate-in slide-in-from-top-4">
-            <div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-zinc-500 uppercase">Filtrar Chamada</h3><button onClick={() => setIsSearchOpen(false)}><X className="w-4 h-4" /></button></div>
+            <div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-zinc-500 uppercase">Filtrar Chamada</h3><button onClick={() => setIsSearchOpen(false)} aria-label="Fechar Busca"><X className="w-4 h-4" /></button></div>
             <div className="space-y-4">
               <input autoFocus type="text" placeholder="Pesquisar nome..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl py-3 px-4 text-sm text-white focus:border-purple-600 outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               <div className="grid grid-cols-2 gap-3">
-                <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterNucleo} onChange={(e) => setFilterNucleo(e.target.value)}><option value="all">Todos Núcleos</option>{store.nucleos.map((n: any) => <option key={n.id} value={n.id}>{n.name}</option>)}</select>
-                <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}><option value="all">Todos Status</option>{Object.values(AttendanceStatus).map(s => <option key={s} value={s}>{s}</option>)}</select>
+                <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterGeneration} onChange={(e) => setFilterGeneration(e.target.value)} aria-label="Filtrar por Geração"><option value="all">Todas Gerações</option>{GENERATIONS.map((g) => <option key={g} value={g}>{g}</option>)}</select>
+                <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Filtrar por Status"><option value="all">Todos Status</option>{Object.values(AttendanceStatus).map(s => <option key={s} value={s}>{s}</option>)}</select>
               </div>
               <button onClick={() => setIsSearchOpen(false)} className="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold text-sm text-white uppercase tracking-widest active:scale-[0.98] transition-all">Ver Resultados</button>
             </div>
@@ -376,19 +377,20 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
 
 // Componente Interno para o Card do Membro
 const MemberCard = ({ member, store, onStatusUpdate, onJustify, showJustificationIcon, justificationText }: any) => {
-  const nucleo = store.nucleos.find((n: any) => n.id === member.nucleoId);
   return (
     <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-2xl p-4 flex flex-col gap-3 transition-all hover:border-zinc-700/80">
       <div className="flex justify-between items-start">
         <div className="flex-1">
           <h3 className="font-semibold text-zinc-100 text-base leading-tight mb-1">{member.name}</h3>
           <div className="flex flex-wrap gap-2">
-            <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${getNucleoColor(nucleo?.color)}`}>{nucleo?.name}</span>
+            <span className={`text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${GENERATION_COLORS[member.generation as GenerationType] || 'text-zinc-500 border-zinc-700 bg-zinc-800'}`}>
+              {member.generation || 'Sem Geração'}
+            </span>
             <span className={`text-[9px] px-2 py-0.5 rounded-full border ${getStatusColor(member.status)} uppercase font-bold`}>{member.status}</span>
           </div>
         </div>
         {showJustificationIcon && (
-          <button onClick={onJustify} className="p-2 bg-zinc-800/50 rounded-xl group active:scale-95 transition-all hover:bg-zinc-800">
+          <button onClick={onJustify} className="p-2 bg-zinc-800/50 rounded-xl group active:scale-95 transition-all hover:bg-zinc-800" aria-label="Justificar Falta">
             <FileText className="w-5 h-5 text-amber-500 group-hover:text-amber-400" />
           </button>
         )}
