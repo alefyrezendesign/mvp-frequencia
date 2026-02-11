@@ -1,4 +1,4 @@
-const CACHE_NAME = 'church-app-v5';
+const CACHE_NAME = 'church-app-v6';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -6,36 +6,32 @@ const urlsToCache = [
   '/icon-app.png?v=3'
 ];
 
-// Install - cache resources
 self.addEventListener('install', event => {
+  self.skipWaiting(); // Força o novo SW a assumir imediatamente
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
-      .then(() => self.skipWaiting())
   );
 });
 
-// Activate - cleanup old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
+            return caches.delete(cacheName); // Limpa caches antigos (v4, v5...)
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => self.clients.claim()) // Assume o controle de todas as abas abertas
   );
 });
 
-// Fetch - Network first for HTML, cache first for assets
 self.addEventListener('fetch', event => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // Network first for HTML
+  // Estratégia "Network First" para HTML (garante sempre a versão nova do site)
   if (request.headers.get('accept').includes('text/html')) {
     event.respondWith(
       fetch(request)
@@ -46,19 +42,22 @@ self.addEventListener('fetch', event => {
           });
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match(request)) // Se offline, usa o cache
     );
     return;
   }
 
-  // Cache first for everything else
+  // Estratégia "Stale-While-Revalidate" para JS e CSS e Imagens
+  // (Usa o cache rápido, mas atualiza em segundo plano para a próxima vez)
   event.respondWith(
-    caches.match(request)
-      .then(response => response || fetch(request).then(fetchResponse => {
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(request, fetchResponse.clone());
-          return fetchResponse;
+    caches.match(request).then(cachedResponse => {
+      const fetchPromise = fetch(request).then(networkResponse => {
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, networkResponse.clone());
         });
-      }))
+        return networkResponse;
+      });
+      return cachedResponse || fetchPromise;
+    })
   );
 });
