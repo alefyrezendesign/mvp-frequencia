@@ -161,7 +161,7 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
           const matchedGeneration = GENERATIONS.find(g => g.toLowerCase() === generationName?.toLowerCase()) || GENERATIONS[0];
 
           newMembers.push({
-            id: Math.random().toString(36).substr(2, 9),
+            id: crypto.randomUUID(),
             name,
             nucleoId: '', // Nucleo deprecado
             generation: matchedGeneration,
@@ -312,19 +312,27 @@ const MemberFormModal = ({ onClose, saveMember, deleteMember, initialData, unitI
     active: true
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    saveMember({
-      ...formData,
-      id: initialData?.id || Math.random().toString(36).substr(2, 9)
-    } as Member);
-    onClose();
+    try {
+      await saveMember({
+        ...formData,
+        id: initialData?.id || crypto.randomUUID()
+      } as Member);
+      onClose();
+    } catch (error) {
+      // Erro tratado no store
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('Tem certeza que deseja EXCLUIR este membro permanentemente? Esta ação não pode ser desfeita e apagará todo o histórico de frequência.')) {
-      deleteMember(initialData.id);
-      onClose();
+      try {
+        await deleteMember(initialData.id);
+        onClose();
+      } catch (error) {
+        // Erro tratado no store
+      }
     }
   };
 

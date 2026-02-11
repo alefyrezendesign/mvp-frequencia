@@ -118,27 +118,48 @@ export function useDataStore() {
   const updateAttendance = async (record: Omit<AttendanceRecord, 'id' | 'registeredAt'>) => {
     const newRecord = {
       ...record,
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       registeredAt: Date.now()
     };
 
+    // Snapshot anterior para rollback
+    const previousAttendance = [...attendance];
+
+    // Optimistic Update
     setAttendance(prev => {
       const filtered = prev.filter(r => !(r.memberId === record.memberId && r.date === record.date));
       return record.status === AttendanceStatus.NOT_REGISTERED ? filtered : [...filtered, newRecord];
     });
 
     if (supabase) {
-      // Deleta anterior e insere novo no banco
-      await supabase.from('attendance').delete().match({ memberId: record.memberId, date: record.date });
-      if (record.status !== AttendanceStatus.NOT_REGISTERED) {
-        await supabase.from('attendance').insert(newRecord);
+      try {
+        // Deleta anterior e insere novo no banco
+        const { error: deleteError } = await supabase.from('attendance').delete().match({ memberId: record.memberId, date: record.date });
+        if (deleteError) throw deleteError;
+
+        if (record.status !== AttendanceStatus.NOT_REGISTERED) {
+          const { error: insertError } = await supabase.from('attendance').insert(newRecord);
+          if (insertError) throw insertError;
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar presença:', error);
+        setAttendance(previousAttendance); // Rollback
+        alert('Erro ao salvar presença. Verifique sua conexão.');
+        throw error;
       }
     } else {
-      localStorage.setItem('church_attendance', JSON.stringify(attendance));
+      // Fallback para LocalStorage se Supabase não estiver configurado
+      // Nota: O useEffect já sincroniza, mas aqui garantimos persistência local imediata se offline/sem config
+      const updated = record.status === AttendanceStatus.NOT_REGISTERED
+        ? previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date))
+        : [...previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date)), newRecord];
+      localStorage.setItem('church_attendance', JSON.stringify(updated));
     }
   };
 
   const batchUpdateAttendance = async (records: AttendanceRecord[]) => {
+    const previousAttendance = [...attendance];
+
     setAttendance(prev => {
       const keysToRemove = new Set(records.map(r => `${r.memberId}-${r.date}`));
       const filtered = prev.filter(r => !keysToRemove.has(`${r.memberId}-${r.date}`));
@@ -146,13 +167,21 @@ export function useDataStore() {
     });
 
     if (supabase) {
-      for (const r of records) {
-        await supabase.from('attendance').upsert(r);
+      try {
+        const { error } = await supabase.from('attendance').upsert(records);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao salvar lote de presença:', error);
+        setAttendance(previousAttendance);
+        alert('Erro ao salvar chamadas em massa.');
+        throw error;
       }
     }
   };
 
   const clearAttendanceForDate = async (unitId: string, date: string) => {
+    const previousAttendance = [...attendance];
+
     // 1. Atualiza estado local removendo registros do dia
     setAttendance(prev => prev.filter(r => !(r.unitId === unitId && r.date === date)));
 
@@ -161,10 +190,11 @@ export function useDataStore() {
       const { error } = await supabase.from('attendance').delete().match({ unitId, date });
       if (error) {
         console.error('Erro ao limpar frequência:', error);
+        setAttendance(previousAttendance);
+        alert('Erro ao limpar frequência do dia.');
         throw error;
       }
     } else {
-      // Fallback para LocalStorage se necessário (embora o hook sincronize tudo no useEffect)
       const current = JSON.parse(localStorage.getItem('church_attendance') || '[]');
       const filtered = current.filter((r: any) => !(r.unitId === unitId && r.date === date));
       localStorage.setItem('church_attendance', JSON.stringify(filtered));
@@ -172,59 +202,126 @@ export function useDataStore() {
   };
 
   const updateCabinetStatus = async (memberId: string, period: string, status: CabinetFollowUp['status']) => {
+    const previousCabinet = [...cabinet];
     const newItem = { memberId, period, status, lastUpdate: Date.now() };
+
     setCabinet(prev => {
       const filtered = prev.filter(c => !(c.memberId === memberId && c.period === period));
       return [...filtered, newItem];
     });
 
     if (supabase) {
-      await supabase.from('cabinet').upsert(newItem);
+      try {
+        const { error } = await supabase.from('cabinet').upsert(newItem);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao atualizar gabinete:', error);
+        setCabinet(previousCabinet);
+        alert('Erro ao salvar status do gabinete.');
+      }
     }
   };
 
   const saveMember = async (member: Member) => {
+    const previousMembers = [...members];
+
     setMembers(prev => {
       const exists = prev.find(m => m.id === member.id);
       return exists ? prev.map(m => m.id === member.id ? member : m) : [...prev, member];
     });
 
     if (supabase) {
-      await supabase.from('members').upsert(member);
+      try {
+        const { error } = await supabase.from('members').upsert(member);
+        if (error) throw error;
+      } catch (error: any) {
+        console.error('Erro ao salvar membro:', error);
+        setMembers(previousMembers);
+        // Importante: lançar erro para a UI tratar (ex: mostrar mensagem específica)
+        alert(`Erro ao salvar membro: ${error.message || 'Erro desconhecido'}`);
+        throw error;
+      }
+    } else {
+      // Fallback LocalStorage
+      const current = JSON.parse(localStorage.getItem('church_members') || '[]');
+      const exists = current.find((m: any) => m.id === member.id);
+      const updated = exists
+        ? current.map((m: any) => m.id === member.id ? member : m)
+        : [...current, member];
+      localStorage.setItem('church_members', JSON.stringify(updated));
     }
   };
 
   const batchSaveMembers = async (newMembers: Member[]) => {
+    const previousMembers = [...members];
     setMembers(prev => [...prev, ...newMembers]);
+
     if (supabase) {
-      await supabase.from('members').insert(newMembers);
+      try {
+        const { error } = await supabase.from('members').insert(newMembers);
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao importar membros:', error);
+        setMembers(previousMembers);
+        alert('Erro ao importar membros.');
+        throw error;
+      }
     }
   };
 
   const updateSettings = async (newSettings: AppSettings) => {
+    const previousSettings = { ...settings };
     setSettings(newSettings);
+
     if (supabase) {
-      await supabase.from('settings').upsert({ id: 1, data: newSettings });
+      try {
+        const { error } = await supabase.from('settings').upsert({ id: 1, data: newSettings });
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao salvar configurações:', error);
+        setSettings(previousSettings);
+        alert('Erro ao salvar configurações.');
+      }
     } else {
       localStorage.setItem('church_settings', JSON.stringify(newSettings));
     }
   };
 
   const saveLeader = async (leader: Leader) => {
+    const previousLeaders = [...leaders];
+
     setLeaders(prev => {
       const exists = prev.find(l => l.id === leader.id);
       return exists ? prev.map(l => l.id === leader.id ? leader : l) : [...prev, leader];
     });
 
     if (supabase) {
-      await supabase.from('leaders').upsert(leader);
+      try {
+        const { error } = await supabase.from('leaders').upsert(leader);
+        if (error) throw error;
+      } catch (error: any) {
+        console.error('Erro ao salvar líder:', error);
+        setLeaders(previousLeaders);
+        alert(`Erro ao salvar líder: ${error.message}`);
+        throw error;
+      }
     }
   };
 
   const deleteMember = async (memberId: string) => {
+    const previousMembers = [...members];
     setMembers(prev => prev.filter(m => m.id !== memberId));
+
     if (supabase) {
-      await supabase.from('members').delete().match({ id: memberId });
+      try {
+        const { error } = await supabase.from('members').delete().match({ id: memberId });
+        if (error) throw error;
+      } catch (error) {
+        console.error('Erro ao deletar membro:', error);
+        setMembers(previousMembers);
+        alert('Erro ao deletar membro. Verifique permissões.');
+        throw error;
+      }
     }
   };
 

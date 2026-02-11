@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Unit, Leader } from '../types';
-import { GENERATIONS, GenerationType, GENERATION_COLORS } from '../constants';
+import { GENERATIONS, GenerationType, GENERATION_COLORS, GENERATION_BASE_COLORS } from '../constants';
 import { normalizePhone } from '../utils';
 import { Crown, Edit2, Check, X, Phone, User } from 'lucide-react';
 
@@ -13,7 +13,7 @@ const LeadershipView: React.FC<LeadershipViewProps> = ({ store, selectedUnit }) 
     const [editingGeneration, setEditingGeneration] = useState<string | null>(null);
     const [editForm, setEditForm] = useState<{ name: string; phone: string }>({ name: '', phone: '' });
 
-    const unitLeaders = store.leaders.filter((l: Leader) => l.unit_id === selectedUnit.id);
+    const unitLeaders = store.leaders.filter((l: Leader) => l.unitId === selectedUnit.id);
 
     const handleEdit = (generation: string) => {
         const currentLeader = unitLeaders.find((l: Leader) => l.generation === generation);
@@ -30,14 +30,18 @@ const LeadershipView: React.FC<LeadershipViewProps> = ({ store, selectedUnit }) 
         const currentLeader = unitLeaders.find((l: Leader) => l.generation === editingGeneration);
         const newLeader: Leader = {
             id: currentLeader?.id || crypto.randomUUID(),
-            unit_id: selectedUnit.id,
+            unitId: selectedUnit.id,
             generation: editingGeneration,
             name: editForm.name.trim(),
             phone: normalizePhone(editForm.phone)
         };
 
-        await store.saveLeader(newLeader);
-        setEditingGeneration(null);
+        try {
+            await store.saveLeader(newLeader);
+            setEditingGeneration(null);
+        } catch (error) {
+            // Erro já tratado no store (alert)
+        }
     };
 
     return (
@@ -110,7 +114,7 @@ const LeadershipView: React.FC<LeadershipViewProps> = ({ store, selectedUnit }) 
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-3 pt-1">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${leader ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/20' : 'bg-black/20 text-current opacity-50'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${leader ? `bg-${GENERATION_BASE_COLORS[gen as GenerationType]} text-zinc-950 shadow-lg shadow-${GENERATION_BASE_COLORS[gen as GenerationType]}/20` : 'bg-zinc-800/50 text-zinc-600'}`}>
                                         {leader ? leader.name[0].toUpperCase() : '?'}
                                     </div>
                                     <div>

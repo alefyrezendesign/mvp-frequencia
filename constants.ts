@@ -23,14 +23,25 @@ export const GENERATIONS = [
 
 export type GenerationType = typeof GENERATIONS[number];
 
+// Mapeamento de Cores Base para Avatares e Chips
+export const GENERATION_BASE_COLORS: Record<GenerationType, string> = {
+  'Berçário': 'cyan-300',      // Azul bebê / Cyano clarinho
+  'Kids': 'yellow-400',        // Amarelo
+  'Teens': 'orange-500',       // Laranja (Inter)
+  'Jovens': 'purple-600',      // Roxo (Nubank)
+  'Homens': 'blue-500',        // Azul
+  'Mulheres': 'pink-500',      // Rosa
+  'Anciões': 'lime-400'        // Amarelo limão
+};
+
 export const GENERATION_COLORS: Record<GenerationType, string> = {
-  'Berçário': 'text-pink-500 border-pink-500/20 bg-pink-500/10',
-  'Kids': 'text-amber-500 border-amber-500/20 bg-amber-500/10',
-  'Teens': 'text-cyan-500 border-cyan-500/20 bg-cyan-500/10',
-  'Jovens': 'text-purple-500 border-purple-500/20 bg-purple-500/10',
+  'Berçário': 'text-cyan-300 border-cyan-300/20 bg-cyan-300/10',
+  'Kids': 'text-yellow-400 border-yellow-400/20 bg-yellow-400/10',
+  'Teens': 'text-orange-500 border-orange-500/20 bg-orange-500/10',
+  'Jovens': 'text-purple-600 border-purple-600/20 bg-purple-600/10',
   'Homens': 'text-blue-500 border-blue-500/20 bg-blue-500/10',
-  'Mulheres': 'text-rose-500 border-rose-500/20 bg-rose-500/10',
-  'Anciões': 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10'
+  'Mulheres': 'text-pink-500 border-pink-500/20 bg-pink-500/10',
+  'Anciões': 'text-lime-400 border-lime-400/20 bg-lime-400/10'
 };
 
 export const ROLES = ['Membro', 'Obreiro/Líder', 'Voluntário'] as const;

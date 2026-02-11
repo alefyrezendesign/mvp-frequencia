@@ -23,7 +23,7 @@ export enum FrequencyCategory {
 
 export interface Leader {
   id: string;
-  unit_id: string;
+  unitId: string;
   generation: string;
   name: string;
   phone: string;

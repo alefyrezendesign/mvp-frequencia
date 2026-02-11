@@ -104,15 +104,19 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
     return { pendingMembers: pending, completedMembers: completed };
   }, [unitMembers, records, searchTerm, filterGeneration, filterStatus]);
 
-  const handleStatusUpdate = (memberId: string, newStatus: AttendanceStatus, currentStatus: AttendanceStatus, text?: string) => {
+  const handleStatusUpdate = async (memberId: string, newStatus: AttendanceStatus, currentStatus: AttendanceStatus, text?: string) => {
     const finalStatus = currentStatus === newStatus ? AttendanceStatus.NOT_REGISTERED : newStatus;
-    store.updateAttendance({
-      memberId,
-      date: selectedDate,
-      unitId: selectedUnit.id,
-      status: finalStatus,
-      justificationText: finalStatus === AttendanceStatus.JUSTIFIED ? text : undefined
-    });
+    try {
+      await store.updateAttendance({
+        memberId,
+        date: selectedDate,
+        unitId: selectedUnit.id,
+        status: finalStatus,
+        justificationText: finalStatus === AttendanceStatus.JUSTIFIED ? text : undefined
+      });
+    } catch (error) {
+      // Erro tratado no store
+    }
   };
 
   const handleClearDay = async () => {
@@ -326,16 +330,21 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
             <h3 className="text-xl font-black text-white mb-2">Marcar Faltas?</h3>
             <p className="text-sm text-zinc-500 mb-8 font-medium">Deseja marcar os {pendingMembers.length} membros restantes como FALTA?</p>
             <div className="space-y-3">
-              <button onClick={() => {
-                store.batchUpdateAttendance(pendingMembers.map((m: any) => ({
-                  id: Math.random().toString(36).substr(2, 9),
-                  memberId: m.id,
-                  date: selectedDate,
-                  unitId: selectedUnit.id,
-                  status: AttendanceStatus.ABSENT,
-                  registeredAt: Date.now()
-                })));
-                setShowFinalizeModal(false); setShowToast(true);
+              <button onClick={async () => {
+                try {
+                  await store.batchUpdateAttendance(pendingMembers.map((m: any) => ({
+                    id: crypto.randomUUID(),
+                    memberId: m.id,
+                    date: selectedDate,
+                    unitId: selectedUnit.id,
+                    status: AttendanceStatus.ABSENT,
+                    registeredAt: Date.now()
+                  })));
+                  setShowFinalizeModal(false);
+                  setShowToast(true);
+                } catch (error) {
+                  // Erro tratado no store
+                }
               }} className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95">Sim, marcar faltas</button>
               <button onClick={() => setShowFinalizeModal(false)} className="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-black text-xs uppercase text-zinc-400 transition-all">Cancelar</button>
             </div>
