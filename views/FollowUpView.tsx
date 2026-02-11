@@ -59,7 +59,7 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
 
   const handleInformLeader = (member: any) => {
     // 1. Identificar Líder da Geração + Unidade
-    const leader = store.leaders.find((l: Leader) => l.unit_id === selectedUnit.id && l.generation === member.generation);
+    const leader = store.leaders.find((l: Leader) => l.unitId === selectedUnit.id && l.generation === member.generation);
 
     // 2. Se não existir líder, mostrar alerta
     if (!leader || !leader.phone) {
