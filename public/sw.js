@@ -1,4 +1,4 @@
-const CACHE_NAME = 'church-app-v6';
+const CACHE_NAME = 'church-app-v7';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -20,7 +20,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName); // Limpa caches antigos (v4, v5...)
+            return caches.delete(cacheName); // Limpa caches antigos
           }
         })
       );
@@ -30,8 +30,9 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const { request } = event;
+  const url = new URL(request.url);
 
-  // Estratégia "Network First" para HTML (garante sempre a versão nova do site)
+  // 1. HTML: Network First (Sempre tenta pegar a versão nova do site)
   if (request.headers.get('accept').includes('text/html')) {
     event.respondWith(
       fetch(request)
@@ -42,22 +43,34 @@ self.addEventListener('fetch', event => {
           });
           return response;
         })
-        .catch(() => caches.match(request)) // Se offline, usa o cache
+        .catch(() => caches.match(request)) // Offline fallback
     );
     return;
   }
 
-  // Estratégia "Stale-While-Revalidate" para JS e CSS e Imagens
-  // (Usa o cache rápido, mas atualiza em segundo plano para a próxima vez)
-  event.respondWith(
-    caches.match(request).then(cachedResponse => {
-      const fetchPromise = fetch(request).then(networkResponse => {
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(request, networkResponse.clone());
+  // 2. Assets Estáticos (JS, CSS, Imagens, Fontes): Stale-While-Revalidate
+  // Só faz cache se for do MESMO domínio e tiver extensão conhecida
+  if (url.origin === self.location.origin &&
+    (url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|json|woff2)$/) ||
+      request.destination === 'script' ||
+      request.destination === 'style' ||
+      request.destination === 'image')) {
+
+    event.respondWith(
+      caches.match(request).then(cachedResponse => {
+        const fetchPromise = fetch(request).then(networkResponse => {
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, networkResponse.clone());
+          });
+          return networkResponse;
         });
-        return networkResponse;
-      });
-      return cachedResponse || fetchPromise;
-    })
-  );
+        return cachedResponse || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // 3. API Calls (Supabase) e Outros: Network Only
+  // NÃO FAZ CACHE DE NADA QUE NÃO SEJA O PRÓPRIO SITE OU ASSETS LISTADOS ACIMA
+  event.respondWith(fetch(request));
 });
