@@ -38,6 +38,26 @@ const App: React.FC = () => {
       return { success: false, errorType: 'SYSTEM_ERROR' };
     }
 
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('SW registered:', registration.scope);
+
+        // Check for updates
+        registration.onupdatefound = () => {
+          const installingWorker = registration.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New content is available; force refresh.
+                window.location.reload();
+              }
+            };
+          }
+        };
+      }).catch(error => {
+        console.log('SW registration failed:', error);
+      });
+    }
     // Validação Segura via RPC (Banco de Dados)
     const { data, error } = await supabase.rpc('verify_access_password', { attempt: password });
 
