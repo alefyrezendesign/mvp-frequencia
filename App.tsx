@@ -88,7 +88,7 @@ const App: React.FC = () => {
     if (!isCurrentDateValid && validDates.length > 0) {
       setSelectedDate(format(validDates[0], 'yyyy-MM-dd'));
     }
-  }, [selectedUnitId, selectedUnit.serviceDays, store.loading, isAuthenticated]);
+  }, [selectedUnitId, selectedUnit.serviceDays, selectedDate, store.loading, isAuthenticated]);
 
   useEffect(() => { if (isAuthenticated) localStorage.setItem('church_last_unit', selectedUnitId); }, [selectedUnitId, isAuthenticated]);
   useEffect(() => { if (isAuthenticated) localStorage.setItem('church_last_date', selectedDate); }, [selectedDate, isAuthenticated]);
