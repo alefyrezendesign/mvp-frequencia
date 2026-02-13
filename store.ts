@@ -157,6 +157,7 @@ export function useDataStore() {
   const batchUpdateAttendance = async (records: AttendanceRecord[]) => {
     const previousAttendance = [...attendance];
 
+    // Optimistic Update
     setAttendance(prev => {
       const keysToRemove = new Set(records.map(r => `${r.memberId}-${r.date}`));
       const filtered = prev.filter(r => !keysToRemove.has(`${r.memberId}-${r.date}`));
@@ -165,8 +166,22 @@ export function useDataStore() {
 
     if (supabase) {
       try {
-        const { error } = await supabase.from('attendance').upsert(records, { onConflict: 'memberId, date' });
+        const { data, error } = await supabase
+          .from('attendance')
+          .upsert(records, { onConflict: 'memberId, date' })
+          .select();
+
         if (error) throw error;
+
+        // Reconciliação com dados reais do banco
+        if (data) {
+          setAttendance(prev => {
+            const keysToUpdate = new Set(data.map(r => `${r.memberId}-${r.date}`));
+            const clean = prev.filter(r => !keysToUpdate.has(`${r.memberId}-${r.date}`));
+            return [...clean, ...data as AttendanceRecord[]];
+          });
+        }
+
       } catch (error: any) {
         console.error('Erro ao salvar lote de presença:', error);
         setAttendance(previousAttendance);
