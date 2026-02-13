@@ -32,7 +32,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
       const records = store.attendance.filter((r: AttendanceRecord) => {
         const isSameUnit = r.unitId === selectedUnit.id;
         const isMember = r.memberId === m.id;
-        const isInMonth = r.date.startsWith(currentMonthStr);
+        const isInMonth = r.Data.startsWith(currentMonthStr);
         return isSameUnit && isMember && isInMonth;
       });
 
@@ -82,14 +82,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
     return store.attendance
       .filter((r: AttendanceRecord) =>
         r.unitId === selectedUnit.id &&
-        r.date.startsWith(currentMonthStr) &&
-        r.status === AttendanceStatus.JUSTIFIED
+        r.Data.startsWith(currentMonthStr) &&
+        r.Status === AttendanceStatus.JUSTIFIED
       )
       .map((r: AttendanceRecord) => ({
         ...r,
         memberName: store.members.find((m: Member) => m.id === r.memberId)?.name || 'Membro desconhecido'
       }))
-      .sort((a: any, b: any) => b.date.localeCompare(a.date));
+      .sort((a: any, b: any) => b.Data.localeCompare(a.Data));
   }, [store.attendance, selectedUnit.id, currentMonthStr, store.members]);
 
   const priorityAttention = useMemo(() =>
@@ -252,10 +252,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-bold text-white">{item.memberName}</span>
                     <span className="text-amber-400 text-[10px] font-bold tracking-widest uppercase">
-                      {format(parseISO(item.date), "dd MMM", { locale: ptBR })}
+                      {format(parseISO(item.Data), "dd MMM", { locale: ptBR })}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-400 italic">"{item.justificationText || 'Sem descrição detalhada'}"</p>
+                  <p className="text-xs text-zinc-400 italic">"{item.justificacaoTexto || 'Sem descrição detalhada'}"</p>
                 </div>
               )) : (
                 <div className="py-10 text-center text-zinc-500">Nenhuma justificativa neste mês.</div>

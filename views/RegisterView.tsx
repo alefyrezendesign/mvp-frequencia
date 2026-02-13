@@ -57,13 +57,13 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
     [store.members, selectedUnit.id]);
 
   const records = useMemo(() =>
-    store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.date === selectedDate),
+    store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.Data === selectedDate),
     [store.attendance, selectedUnit.id, selectedDate]);
 
   const currentAttendance = useMemo(() => {
-    const present = records.filter((r: any) => r.status === AttendanceStatus.PRESENT).length;
-    const absent = records.filter((r: any) => r.status === AttendanceStatus.ABSENT).length;
-    const justified = records.filter((r: any) => r.status === AttendanceStatus.JUSTIFIED).length;
+    const present = records.filter((r: any) => r.Status === AttendanceStatus.PRESENT).length;
+    const absent = records.filter((r: any) => r.Status === AttendanceStatus.ABSENT).length;
+    const justified = records.filter((r: any) => r.Status === AttendanceStatus.JUSTIFIED).length;
     const total = unitMembers.length;
     const registered = records.length;
     const notRegistered = total - registered;
@@ -72,15 +72,15 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
   }, [records, unitMembers]);
 
   const isDateCompleted = (dateStr: string) => {
-    const count = store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.date === dateStr).length;
+    const count = store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.Data === dateStr).length;
     return unitMembers.length > 0 && count >= unitMembers.length;
   };
 
   const dateHasJustification = (dateStr: string) => {
     return store.attendance.some((r: any) =>
       r.unitId === selectedUnit.id &&
-      r.date === dateStr &&
-      r.status === AttendanceStatus.JUSTIFIED
+      r.Data === dateStr &&
+      r.Status === AttendanceStatus.JUSTIFIED
     );
   };
 
@@ -88,7 +88,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
   const { pendingMembers, completedMembers } = useMemo(() => {
     let all = unitMembers.map((m: Member) => {
       const record = records.find((r: any) => r.memberId === m.id);
-      return { ...m, status: record?.status || AttendanceStatus.NOT_REGISTERED };
+      return { ...m, status: record?.Status || AttendanceStatus.NOT_REGISTERED };
     });
 
     if (searchTerm) all = all.filter((m: any) => m.name.toLowerCase().includes(searchTerm.toLowerCase()));

@@ -30,7 +30,7 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
       .filter((m: Member) => m.unitId === selectedUnit.id && m.active)
       .map((m: Member) => {
         const records = store.attendance.filter((r: AttendanceRecord) =>
-          r.memberId === m.id && r.date.startsWith(currentMonthStr)
+          r.memberId === m.id && r.Data.startsWith(currentMonthStr)
         );
         const stats = calculateAttendance(records, totalServices, store.settings);
         const cabinetInfo = store.cabinet.find((c: CabinetFollowUp) => c.memberId === m.id && c.period === currentMonthStr);
