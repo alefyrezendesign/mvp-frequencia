@@ -44,6 +44,16 @@ export const GENERATION_COLORS: Record<GenerationType, string> = {
   'Anciões': 'text-lime-400 border-lime-400/20 bg-lime-400/10'
 };
 
+export const GENERATION_AVATAR_STYLES: Record<GenerationType, string> = {
+  'Berçário': 'bg-cyan-300 text-zinc-950 shadow-lg shadow-cyan-300/20',
+  'Kids': 'bg-yellow-400 text-zinc-950 shadow-lg shadow-yellow-400/20',
+  'Teens': 'bg-orange-500 text-zinc-950 shadow-lg shadow-orange-500/20',
+  'Jovens': 'bg-purple-600 text-white shadow-lg shadow-purple-600/20',
+  'Homens': 'bg-blue-500 text-white shadow-lg shadow-blue-500/20',
+  'Mulheres': 'bg-pink-500 text-white shadow-lg shadow-pink-500/20',
+  'Anciões': 'bg-lime-400 text-zinc-950 shadow-lg shadow-lime-400/20'
+};
+
 export const ROLES = ['Membro', 'Obreiro/Líder', 'Voluntário'] as const;
 
 // Mantido apenas para cores e compatibilidade visual de legado

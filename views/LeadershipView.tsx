@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Unit, Leader } from '../types';
-import { GENERATIONS, GenerationType, GENERATION_COLORS, GENERATION_BASE_COLORS } from '../constants';
+import { GENERATIONS, GenerationType, GENERATION_COLORS, GENERATION_AVATAR_STYLES } from '../constants';
 import { normalizePhone } from '../utils';
 import { Crown, Edit2, Check, X, Phone, User } from 'lucide-react';
 
@@ -114,7 +114,7 @@ const LeadershipView: React.FC<LeadershipViewProps> = ({ store, selectedUnit }) 
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-3 pt-1">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${leader ? `bg-${GENERATION_BASE_COLORS[gen as GenerationType]} text-zinc-950 shadow-lg shadow-${GENERATION_BASE_COLORS[gen as GenerationType]}/20` : 'bg-zinc-800/50 text-zinc-600'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${leader ? (GENERATION_AVATAR_STYLES[gen as GenerationType] || 'bg-zinc-800 text-zinc-400') : 'bg-zinc-800/50 text-zinc-600'}`}>
                                         {leader ? leader.name[0].toUpperCase() : '?'}
                                     </div>
                                     <div>
