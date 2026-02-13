@@ -29,14 +29,15 @@ export function useDataStore() {
           console.log('🟡 [LOAD] Buscando dados do Supabase...');
 
           // 1. Buscas Críticas (Paralelas)
+          // AUMENTADO LIMITE PARA 10000 REGISTROS (Default Supabase é 1000)
           const [
             { data: dbMembers, error: errMembers },
             { data: dbAttendance, error: errAttendance },
             { data: dbCabinet, error: errCabinet },
             { data: dbLeaders, error: errLeaders }
           ] = await Promise.all([
-            supabase.from('members').select('*'),
-            supabase.from('attendance').select('*'),
+            supabase.from('members').select('*').range(0, 10000),
+            supabase.from('attendance').select('*').range(0, 10000),
             supabase.from('cabinet').select('*'),
             supabase.from('leaders').select('*')
           ]);
@@ -44,14 +45,8 @@ export function useDataStore() {
           console.log('✅ [LOAD] Dados retornados do Supabase:');
           console.log('  - Members:', dbMembers?.length || 0);
           console.log('  - Attendance:', dbAttendance?.length || 0);
-
-          if (dbAttendance && dbAttendance.length > 0) {
-            console.log('🔍 [AMOSTRA] Primeiro registro de attendance:', dbAttendance[0]);
-            console.log('🔍 [AMOSTRA] Formato da Data:', dbAttendance[0].Data);
-            console.log('🔍 [AMOSTRA] UnitId:', dbAttendance[0].unitId);
-          }
-
           console.log('  - Cabinet:', dbCabinet?.length || 0);
+          console.log('  - Leaders:', dbLeaders?.length || 0);
 
           if (errMembers) {
             console.error('❌ [LOAD] Erro em members:', errMembers);
