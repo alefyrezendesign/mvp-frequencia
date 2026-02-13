@@ -133,18 +133,15 @@ export function useDataStore() {
 
     if (supabase) {
       try {
-        // Deleta anterior e insere novo no banco
-        const { error: deleteError } = await supabase.from('attendance').delete().match({ memberId: record.memberId, date: record.date });
-        if (deleteError) throw deleteError;
+        // Upsert seguro: Atualiza se existir, insere se não (baseado no memberId + date)
+        // O onConflict instrui o Supabase a verificar a constraint UNIQUE que criamos
+        const { error } = await supabase.from('attendance').upsert(newRecord, { onConflict: 'memberId, date' });
 
-        if (record.status !== AttendanceStatus.NOT_REGISTERED) {
-          const { error: insertError } = await supabase.from('attendance').insert(newRecord);
-          if (insertError) throw insertError;
-        }
-      } catch (error) {
-        console.error('Erro ao atualizar presença:', error);
+        if (error) throw error;
+      } catch (error: any) {
+        console.error('Erro ao salvar presença:', error);
         setAttendance(previousAttendance); // Rollback
-        alert('Erro ao salvar presença. Verifique sua conexão.');
+        alert(`Erro ao salvar presença: ${error.message || 'Verifique sua conexão.'}`);
         throw error;
       }
     } else {
@@ -168,12 +165,12 @@ export function useDataStore() {
 
     if (supabase) {
       try {
-        const { error } = await supabase.from('attendance').upsert(records);
+        const { error } = await supabase.from('attendance').upsert(records, { onConflict: 'memberId, date' });
         if (error) throw error;
-      } catch (error) {
+      } catch (error: any) {
         console.error('Erro ao salvar lote de presença:', error);
         setAttendance(previousAttendance);
-        alert('Erro ao salvar chamadas em massa.');
+        alert(`Erro ao salvar chamadas em massa: ${error.message}`);
         throw error;
       }
     }
