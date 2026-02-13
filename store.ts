@@ -131,13 +131,34 @@ export function useDataStore() {
       return record.status === AttendanceStatus.NOT_REGISTERED ? filtered : [...filtered, newRecord];
     });
 
+    // 1. SALVAR NO LOCALSTORAGE AGORA (Backup de Segurança Imediato)
+    try {
+      const updatedLocal = record.status === AttendanceStatus.NOT_REGISTERED
+        ? previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date))
+        : [...previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date)), newRecord];
+      localStorage.setItem('church_attendance', JSON.stringify(updatedLocal));
+    } catch (e) { console.error('Erro ao salvar local:', e); }
+
     if (supabase) {
       try {
-        // Upsert seguro: Atualiza se existir, insere se não (baseado no memberId + date)
-        // O onConflict instrui o Supabase a verificar a constraint UNIQUE que criamos
-        const { error } = await supabase.from('attendance').upsert(newRecord, { onConflict: 'memberId, date' });
+        // Upsert seguro: Atualiza se existir, insere se não
+        const { data, error } = await supabase
+          .from('attendance')
+          .upsert(newRecord, { onConflict: 'memberId, date' })
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Confirmar com o dado real do banco e atualizar LocalStorage
+        if (data) {
+          setAttendance(prev => {
+            const clean = prev.filter(r => !(r.memberId === data.memberId && r.date === data.date));
+            const finalState = [...clean, data as AttendanceRecord];
+            localStorage.setItem('church_attendance', JSON.stringify(finalState));
+            return finalState;
+          });
+        }
       } catch (error: any) {
         console.error('Erro ao salvar presença:', error);
         setAttendance(previousAttendance); // Rollback
@@ -158,11 +179,15 @@ export function useDataStore() {
     const previousAttendance = [...attendance];
 
     // Optimistic Update
-    setAttendance(prev => {
-      const keysToRemove = new Set(records.map(r => `${r.memberId}-${r.date}`));
-      const filtered = prev.filter(r => !keysToRemove.has(`${r.memberId}-${r.date}`));
-      return [...filtered, ...records];
-    });
+    // Optimistic Update & LocalStorage Sync
+    const newLocalState = [...attendance];
+    // Remove antigos que serão atualizados
+    const keysToRemove = new Set(records.map(r => `${r.memberId}-${r.date}`));
+    const cleanState = newLocalState.filter(r => !keysToRemove.has(`${r.memberId}-${r.date}`));
+    const optimizedState = [...cleanState, ...records];
+
+    setAttendance(optimizedState);
+    localStorage.setItem('church_attendance', JSON.stringify(optimizedState));
 
     if (supabase) {
       try {
@@ -178,13 +203,16 @@ export function useDataStore() {
           setAttendance(prev => {
             const keysToUpdate = new Set(data.map(r => `${r.memberId}-${r.date}`));
             const clean = prev.filter(r => !keysToUpdate.has(`${r.memberId}-${r.date}`));
-            return [...clean, ...data as AttendanceRecord[]];
+            const finalState = [...clean, ...data as AttendanceRecord[]];
+            localStorage.setItem('church_attendance', JSON.stringify(finalState)); // Atualiza com dados oficiais
+            return finalState;
           });
         }
 
       } catch (error: any) {
         console.error('Erro ao salvar lote de presença:', error);
         setAttendance(previousAttendance);
+        localStorage.setItem('church_attendance', JSON.stringify(previousAttendance));
         alert(`Erro ao salvar chamadas em massa: ${error.message}`);
         throw error;
       }
