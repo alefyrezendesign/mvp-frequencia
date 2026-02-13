@@ -18,12 +18,7 @@ export function useDataStore() {
   // Carregamento Inicial (Banco de Dados ou LocalStorage como backup)
   // Carregamento Inicial (Banco de Dados + Sync LocalStorage)
   useEffect(() => {
-    console.log('🔵 [STORE] useEffect INICIANDO - loadInitialData será chamado');
-
     async function loadInitialData() {
-      console.log('🟢 [LOAD] loadInitialData() EXECUTANDO');
-      console.log('🟢 [LOAD] supabase client existe?', !!supabase);
-
       if (supabase) {
         try {
           console.log('🟡 [LOAD] Buscando dados do Supabase...');
@@ -64,20 +59,8 @@ export function useDataStore() {
             supabase.from('leaders').select('*')
           ]);
 
-          console.log('🚀 [LOAD V3] Paginação Manual Ativada!');
-          console.log('  - Members:', dbMembers?.length || 0);
-          console.log('  - Attendance (TOTAL REAL):', dbAttendance?.length || 0);
-          console.log('  - Cabinet:', dbCabinet?.length || 0);
-          console.log('  - Leaders:', dbLeaders?.length || 0);
-
-          if (errMembers) {
-            console.error('❌ [LOAD] Erro em members:', errMembers);
-            throw errMembers;
-          }
-          if (errAttendance) {
-            console.error('❌ [LOAD] Erro em attendance:', errAttendance);
-            throw errAttendance;
-          }
+          if (errMembers) throw errMembers;
+          if (errAttendance) throw errAttendance;
 
           // 2. Busca Não-Crítica (Settings) - Falha silenciosa permitida
           let dbSettingsData = null;
@@ -90,81 +73,39 @@ export function useDataStore() {
           }
 
           // 3. Atualizar Estado
-          console.log('🔄 [LOAD] Atualizando estado React...');
-          if (dbMembers) {
-            setMembers(dbMembers);
-            console.log('  ✅ setMembers chamado com', dbMembers.length, 'membros');
-          }
-          if (dbAttendance) {
-            setAttendance(dbAttendance);
-            console.log('  ✅ setAttendance chamado com', dbAttendance.length, 'registros');
-          }
-          if (dbCabinet) {
-            setCabinet(dbCabinet || []);
-            console.log('  ✅ setCabinet chamado');
-          }
-          if (dbSettingsData) {
-            setSettings(dbSettingsData);
-            console.log('  ✅ setSettings chamado');
-          }
-          if (dbLeaders) {
-            setLeaders(dbLeaders || []);
-            console.log('  ✅ setLeaders chamado');
-          }
+          if (dbMembers) setMembers(dbMembers);
+          if (dbAttendance) setAttendance(dbAttendance);
+          if (dbCabinet) setCabinet(dbCabinet || []);
+          if (dbSettingsData) setSettings(dbSettingsData);
+          if (dbLeaders) setLeaders(dbLeaders || []);
 
           // 4. PERSISTIR NO LOCALSTORAGE (Cache para Offline/Fallback)
-          console.log('💾 [LOAD] Salvando em localStorage...');
           localStorage.setItem('church_members', JSON.stringify(dbMembers || []));
           localStorage.setItem('church_attendance', JSON.stringify(dbAttendance || []));
           if (dbSettingsData) localStorage.setItem('church_settings', JSON.stringify(dbSettingsData));
-          console.log('  ✅ localStorage atualizado');
 
         } catch (error) {
           console.error('❌ [LOAD] ERRO CRÍTICO no carregamento inicial:', error);
-          console.log('🔄 [LOAD] Tentando fallback para localStorage...');
           loadFromLocalStorage();
         }
       } else {
-        console.warn('⚠️ [LOAD] Supabase client NÃO existe, usando localStorage');
         loadFromLocalStorage();
       }
 
       setLoading(false);
-      console.log('🏁 [LOAD] loadInitialData CONCLUÍDO. setLoading(false) chamado.');
     }
 
     function loadFromLocalStorage() {
-      console.log('📦 [LOCAL] loadFromLocalStorage() EXECUTANDO');
       try {
         const savedMembers = localStorage.getItem('church_members');
         const savedAttendance = localStorage.getItem('church_attendance');
         const savedSettings = localStorage.getItem('church_settings');
 
-        console.log('📦 [LOCAL] Dados em localStorage:');
-        console.log('  - Members existe?', !!savedMembers);
-        console.log('  - Attendance existe?', !!savedAttendance);
-        console.log('  - Settings existe?', !!savedSettings);
+        if (savedMembers) setMembers(JSON.parse(savedMembers));
+        else setMembers(MOCK_MEMBERS);
 
-        if (savedMembers) {
-          const parsed = JSON.parse(savedMembers);
-          setMembers(parsed);
-          console.log('  ✅ setMembers chamado com', parsed.length, 'membros do localStorage');
-        } else {
-          setMembers(MOCK_MEMBERS);
-          console.log('  ⚠️ Usando MOCK_MEMBERS');
-        }
-
-        if (savedAttendance) {
-          const parsed = JSON.parse(savedAttendance);
-          setAttendance(parsed);
-          console.log('  ✅ setAttendance chamado com', parsed.length, 'registros do localStorage');
-        }
-
-        if (savedSettings) {
-          const parsed = JSON.parse(savedSettings);
-          setSettings(parsed);
-          console.log('  ✅ setSettings chamado do localStorage');
-        }
+        if (savedAttendance) setAttendance(JSON.parse(savedAttendance));
+        if (savedSettings) setSettings(JSON.parse(savedSettings));
       } catch (e) {
         console.error('❌ [LOCAL] Erro ao ler LocalStorage:', e);
       }
