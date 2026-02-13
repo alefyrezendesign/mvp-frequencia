@@ -42,7 +42,7 @@ export function useDataStore() {
             supabase.from('leaders').select('*')
           ]);
 
-          console.log('✅ [LOAD] Dados retornados do Supabase:');
+          console.log('🚀 [LOAD V2] Dados retornados (LIMIT 10k):');
           console.log('  - Members:', dbMembers?.length || 0);
           console.log('  - Attendance:', dbAttendance?.length || 0);
           console.log('  - Cabinet:', dbCabinet?.length || 0);
