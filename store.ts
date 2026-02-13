@@ -44,8 +44,14 @@ export function useDataStore() {
           console.log('✅ [LOAD] Dados retornados do Supabase:');
           console.log('  - Members:', dbMembers?.length || 0);
           console.log('  - Attendance:', dbAttendance?.length || 0);
+
+          if (dbAttendance && dbAttendance.length > 0) {
+            console.log('🔍 [AMOSTRA] Primeiro registro de attendance:', dbAttendance[0]);
+            console.log('🔍 [AMOSTRA] Formato da Data:', dbAttendance[0].Data);
+            console.log('🔍 [AMOSTRA] UnitId:', dbAttendance[0].unitId);
+          }
+
           console.log('  - Cabinet:', dbCabinet?.length || 0);
-          console.log('  - Leaders:', dbLeaders?.length || 0);
 
           if (errMembers) {
             console.error('❌ [LOAD] Erro em members:', errMembers);

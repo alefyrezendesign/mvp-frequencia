@@ -56,9 +56,18 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
     store.members.filter((m: Member) => m.unitId === selectedUnit.id && m.active),
     [store.members, selectedUnit.id]);
 
-  const records = useMemo(() =>
-    store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.date === selectedDate),
-    [store.attendance, selectedUnit.id, selectedDate]);
+  console.log('🔍 [VIEW] Renderizando RegisterView');
+  console.log('  - Data Selecionada:', selectedDate);
+  console.log('  - Unidade Selecionada:', selectedUnit.id);
+  console.log('  - Total Attendance Store:', store.attendance.length);
+
+  const records = useMemo(() => {
+    const filtered = store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.Data === selectedDate);
+    console.log(`🔍 [FILTER] Filtrando attendance:`);
+    console.log(`  - Critério: unitId=${selectedUnit.id}, Data=${selectedDate}`);
+    console.log(`  - Resultado: ${filtered.length} registros encontrados`);
+    return filtered;
+  }, [store.attendance, selectedUnit.id, selectedDate]);
 
   const currentAttendance = useMemo(() => {
     const present = records.filter((r: any) => r.status === AttendanceStatus.PRESENT).length;
