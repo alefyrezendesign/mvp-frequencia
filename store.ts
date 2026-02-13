@@ -55,8 +55,8 @@ export function useDataStore() {
               return { data: allData, error: null };
             })(),
 
-            supabase.from('cabinet').select('*'),
-            supabase.from('leaders').select('*')
+            supabase.from('cabinet').select('*').range(0, 10000),
+            supabase.from('leaders').select('*').range(0, 10000)
           ]);
 
           if (errMembers) throw errMembers;
