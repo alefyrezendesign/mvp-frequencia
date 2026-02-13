@@ -29,22 +29,44 @@ export function useDataStore() {
           console.log('🟡 [LOAD] Buscando dados do Supabase...');
 
           // 1. Buscas Críticas (Paralelas)
-          // AUMENTADO LIMITE PARA 10000 REGISTROS (Default Supabase é 1000)
+          // PAGINAÇÃO MANUAL IMPLEMENTADA (Supera limite de 1000 do Supabase)
           const [
             { data: dbMembers, error: errMembers },
             { data: dbAttendance, error: errAttendance },
             { data: dbCabinet, error: errCabinet },
             { data: dbLeaders, error: errLeaders }
           ] = await Promise.all([
+            // Members (usually small, but range added just in case)
             supabase.from('members').select('*').range(0, 10000),
-            supabase.from('attendance').select('*').range(0, 10000),
+
+            // Attendance - PAGINATION LOOP
+            (async () => {
+              let allData: any[] = [];
+              let page = 0;
+              const size = 1000;
+              while (true) {
+                const { data, error } = await supabase
+                  .from('attendance')
+                  .select('*')
+                  .range(page * size, (page + 1) * size - 1);
+
+                if (error) return { data: null, error };
+                if (!data || data.length === 0) break;
+
+                allData = [...allData, ...data];
+                if (data.length < size) break; // Finished
+                page++;
+              }
+              return { data: allData, error: null };
+            })(),
+
             supabase.from('cabinet').select('*'),
             supabase.from('leaders').select('*')
           ]);
 
-          console.log('🚀 [LOAD V2] Dados retornados (LIMIT 10k):');
+          console.log('🚀 [LOAD V3] Paginação Manual Ativada!');
           console.log('  - Members:', dbMembers?.length || 0);
-          console.log('  - Attendance:', dbAttendance?.length || 0);
+          console.log('  - Attendance (TOTAL REAL):', dbAttendance?.length || 0);
           console.log('  - Cabinet:', dbCabinet?.length || 0);
           console.log('  - Leaders:', dbLeaders?.length || 0);
 
