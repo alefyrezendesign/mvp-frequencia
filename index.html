@@ -78,13 +78,15 @@
 <body class="bg-black text-gray-100">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
-  <script>
+  <!-- TEMPORARILY DISABLED FOR DEBUGGING DATA PERSISTENCE ISSUE -->
+  <!-- Service Worker pode estar cacheando versão antiga do código -->
+  <!-- <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration failed:', err));
       });
     }
-  </script>
+  </script> -->
 </body>
 
 </html>
