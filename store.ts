@@ -16,32 +16,52 @@ export function useDataStore() {
   const [loading, setLoading] = useState(true);
 
   // Carregamento Inicial (Banco de Dados ou LocalStorage como backup)
+  // Carregamento Inicial (Banco de Dados + Sync LocalStorage)
   useEffect(() => {
     async function loadInitialData() {
       if (supabase) {
         try {
+          // 1. Buscas Críticas (Paralelas)
           const [
-            { data: dbMembers },
-            { data: dbAttendance },
-            { data: dbCabinet },
-            { data: dbSettings },
-            { data: dbLeaders }
+            { data: dbMembers, error: errMembers },
+            { data: dbAttendance, error: errAttendance },
+            { data: dbCabinet, error: errCabinet },
+            { data: dbLeaders, error: errLeaders }
           ] = await Promise.all([
             supabase.from('members').select('*'),
             supabase.from('attendance').select('*'),
             supabase.from('cabinet').select('*'),
-            supabase.from('settings').select('data').single(),
             supabase.from('leaders').select('*')
           ]);
 
+          if (errMembers) throw errMembers;
+          if (errAttendance) throw errAttendance;
+
+          // 2. Busca Não-Crítica (Settings) - Falha silenciosa permitida
+          let dbSettingsData = null;
+          try {
+            const { data: dbSettings } = await supabase.from('settings').select('data').maybeSingle();
+            if (dbSettings) dbSettingsData = dbSettings.data;
+          } catch (e) {
+            console.warn('Erro ao carregar configurações (usando padrão):', e);
+          }
+
+          // 3. Atualizar Estado
           if (dbMembers) setMembers(dbMembers);
           if (dbAttendance) setAttendance(dbAttendance);
-          if (dbCabinet) setCabinet(dbCabinet);
-          if (dbSettings?.data) setSettings(dbSettings.data);
-          if (dbLeaders) setLeaders(dbLeaders);
+          if (dbCabinet) setCabinet(dbCabinet || []);
+          if (dbSettingsData) setSettings(dbSettingsData);
+          if (dbLeaders) setLeaders(dbLeaders || []);
+
+          // 4. PERSISTIR NO LOCALSTORAGE (Cache para Offline/Fallback)
+          // Isso garante que se a internet cair ou o próximo load falhar, temos dados reais.
+          localStorage.setItem('church_members', JSON.stringify(dbMembers || []));
+          localStorage.setItem('church_attendance', JSON.stringify(dbAttendance || []));
+          if (dbSettingsData) localStorage.setItem('church_settings', JSON.stringify(dbSettingsData));
+
         } catch (error) {
-          console.error('Erro ao carregar do Supabase:', error);
-          loadFromLocalStorage();
+          console.error('Erro CRÍTICO no carregamento inicial:', error);
+          loadFromLocalStorage(); // Fallback
         }
       } else {
         loadFromLocalStorage();
@@ -50,15 +70,19 @@ export function useDataStore() {
     }
 
     function loadFromLocalStorage() {
-      const savedMembers = localStorage.getItem('church_members');
-      const savedAttendance = localStorage.getItem('church_attendance');
-      const savedSettings = localStorage.getItem('church_settings');
+      try {
+        const savedMembers = localStorage.getItem('church_members');
+        const savedAttendance = localStorage.getItem('church_attendance');
+        const savedSettings = localStorage.getItem('church_settings');
 
-      if (savedMembers) setMembers(JSON.parse(savedMembers));
-      else setMembers(MOCK_MEMBERS);
+        if (savedMembers) setMembers(JSON.parse(savedMembers));
+        else setMembers(MOCK_MEMBERS); // Só usa mock se realmente não tiver cache
 
-      if (savedAttendance) setAttendance(JSON.parse(savedAttendance));
-      if (savedSettings) setSettings(JSON.parse(savedSettings));
+        if (savedAttendance) setAttendance(JSON.parse(savedAttendance));
+        if (savedSettings) setSettings(JSON.parse(savedSettings));
+      } catch (e) {
+        console.error('Erro ao ler LocalStorage:', e);
+      }
     }
 
     loadInitialData();
