@@ -116,6 +116,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
         <button
           onClick={() => setSelectedMonthDate(curr => subMonths(curr, 1))}
           className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+          aria-label="Mês anterior"
         >
           <ChevronLeft size={20} />
         </button>
@@ -130,6 +131,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
         <button
           onClick={() => setSelectedMonthDate(curr => addMonths(curr, 1))}
           className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+          aria-label="Próximo mês"
         >
           <ChevronRight size={20} />
         </button>
