@@ -119,13 +119,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
       </div>
 
       <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-4 rounded-2xl shadow-sm">
-        <button onClick={() => setSelectedMonthDate(subMonths(selectedMonthDate, 1))} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400">
+        <button onClick={() => setSelectedMonthDate(subMonths(selectedMonthDate, 1))} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400" aria-label="Mês anterior">
           <ChevronLeft className="w-6 h-6" />
         </button>
         <div className="text-center">
           <span className="text-base font-bold text-white capitalize">{format(selectedMonthDate, 'MMMM yyyy', { locale: ptBR })}</span>
         </div>
-        <button onClick={() => setSelectedMonthDate(addMonths(selectedMonthDate, 1))} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400">
+        <button onClick={() => setSelectedMonthDate(addMonths(selectedMonthDate, 1))} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400" aria-label="Próximo mês">
           <ChevronRight className="w-6 h-6" />
         </button>
       </div>
@@ -244,7 +244,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
           <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
             <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
               <h3 className="font-bold text-lg">Justificativas</h3>
-              <button onClick={() => setShowJustificationModal(false)} className="p-2 bg-zinc-800 rounded-full text-zinc-400"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowJustificationModal(false)} className="p-2 bg-zinc-800 rounded-full text-zinc-400" aria-label="Fechar modal"><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {monthJustifications.length > 0 ? monthJustifications.map((item: any) => (
