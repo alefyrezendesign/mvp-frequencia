@@ -58,11 +58,11 @@ export interface Member {
 export interface AttendanceRecord {
   id: string;
   memberId: string;
-  Data: string; // YYYY-MM-DD (Nome da coluna no banco: "Data" com D maiúsculo!)
+  date: string; // YYYY-MM-DD
   unitId: string;
-  Status: AttendanceStatus; // Nome da coluna no banco: "Status" com S maiúsculo!
-  justificacaoTexto?: string; // Nome da coluna no banco
-  registrado: number; // Nome da coluna no banco (era "registeredAt" no código)
+  status: AttendanceStatus;
+  justificationText?: string;
+  registeredAt: number;
 }
 
 export interface CabinetFollowUp {

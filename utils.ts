@@ -77,9 +77,9 @@ export const getValidServiceDates = (unitId: string, monthStr: string, serviceDa
 };
 
 export const calculateAttendance = (memberRecords: AttendanceRecord[], totalExpected: number, settings: AppSettings) => {
-  const presences = memberRecords.filter(r => r.Status === AttendanceStatus.PRESENT).length;
-  const absences = memberRecords.filter(r => r.Status === AttendanceStatus.ABSENT).length;
-  const justifications = memberRecords.filter(r => r.Status === AttendanceStatus.JUSTIFIED).length;
+  const presences = memberRecords.filter(r => r.status === AttendanceStatus.PRESENT).length;
+  const absences = memberRecords.filter(r => r.status === AttendanceStatus.ABSENT).length;
+  const justifications = memberRecords.filter(r => r.status === AttendanceStatus.JUSTIFIED).length;
 
   let effectivePresences = presences;
   if (settings.justifiedCountsAsPresence) {

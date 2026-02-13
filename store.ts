@@ -101,30 +101,19 @@ export function useDataStore() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           const newRecord = payload.new as AttendanceRecord;
-          setAttendance(prev => prev.filter(r => !(r.memberId === newRecord.memberId && r.Data === newRecord.Data)).concat(newRecord));
+          setAttendance(prev => prev.some(r => r.id === newRecord.id) ? prev : [...prev, newRecord]);
         }
         if (payload.eventType === 'UPDATE') {
           const updated = payload.new as AttendanceRecord;
-          setAttendance(prev => prev.map(r =>
-            r.memberId === updated.memberId && r.Data === updated.Data ? updated : r
-          ));
+          setAttendance(prev => prev.map(r => r.id === updated.id ? updated : r));
         }
         if (payload.eventType === 'DELETE') {
-          setAttendance(prev => prev.filter(r =>
-            !(r.memberId === payload.old.memberId && r.Data === payload.old.Data)
-          ));
+          setAttendance(prev => prev.filter(r => r.id !== payload.old.id));
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'cabinet' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          const record = payload.new as CabinetFollowUp;
-          setCabinet(prev => {
-            const filtered = prev.filter(c => !(c.memberId === record.memberId && c.period === record.period));
-            return [...filtered, record];
-          });
-        }
-        if (payload.eventType === 'UPDATE') {
-          const record = payload.new as CabinetFollowUp;
+        const record = payload.new as CabinetFollowUp;
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           setCabinet(prev => {
             const filtered = prev.filter(c => !(c.memberId === record.memberId && c.period === record.period));
             return [...filtered, record];
@@ -150,11 +139,11 @@ export function useDataStore() {
   }, []);
 
   // Update Methods (Salvando no Banco)
-  const updateAttendance = async (record: Omit<AttendanceRecord, 'id' | 'registrado'>) => {
-    const newRecord: AttendanceRecord = {
+  const updateAttendance = async (record: Omit<AttendanceRecord, 'id' | 'registeredAt'>) => {
+    const newRecord = {
       ...record,
       id: crypto.randomUUID(),
-      registrado: Date.now()
+      registeredAt: Date.now()
     };
 
     // Snapshot anterior para rollback
@@ -162,24 +151,24 @@ export function useDataStore() {
 
     // Optimistic Update
     setAttendance(prev => {
-      const filtered = prev.filter(r => !(r.memberId === record.memberId && r.Data === record.Data));
-      return record.Status === AttendanceStatus.NOT_REGISTERED ? filtered : [...filtered, newRecord];
+      const filtered = prev.filter(r => !(r.memberId === record.memberId && r.date === record.date));
+      return record.status === AttendanceStatus.NOT_REGISTERED ? filtered : [...filtered, newRecord];
     });
 
     // 1. SALVAR NO LOCALSTORAGE AGORA (Backup de Segurança Imediato)
     try {
-      const updatedLocal = record.Status === AttendanceStatus.NOT_REGISTERED
-        ? previousAttendance.filter(r => !(r.memberId === record.memberId && r.Data === record.Data))
-        : [...previousAttendance.filter(r => !(r.memberId === record.memberId && r.Data === record.Data)), newRecord];
+      const updatedLocal = record.status === AttendanceStatus.NOT_REGISTERED
+        ? previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date))
+        : [...previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date)), newRecord];
       localStorage.setItem('church_attendance', JSON.stringify(updatedLocal));
     } catch (e) { console.error('Erro ao salvar local:', e); }
 
     if (supabase) {
       try {
-        // Upsert seguro: Atualiza se existir, insere se não (COLUNA CORRETA: "Data"!)
+        // Upsert seguro: Atualiza se existir, insere se não
         const { data, error } = await supabase
           .from('attendance')
-          .upsert(newRecord, { onConflict: 'memberId, Data' })
+          .upsert(newRecord, { onConflict: 'memberId, date' })
           .select()
           .single();
 
@@ -188,7 +177,7 @@ export function useDataStore() {
         // Confirmar com o dado real do banco e atualizar LocalStorage
         if (data) {
           setAttendance(prev => {
-            const clean = prev.filter(r => !(r.memberId === data.memberId && r.Data === data.Data));
+            const clean = prev.filter(r => !(r.memberId === data.memberId && r.date === data.date));
             const finalState = [...clean, data as AttendanceRecord];
             localStorage.setItem('church_attendance', JSON.stringify(finalState));
             return finalState;
@@ -202,9 +191,10 @@ export function useDataStore() {
       }
     } else {
       // Fallback para LocalStorage se Supabase não estiver configurado
-      const updated = record.Status === AttendanceStatus.NOT_REGISTERED
-        ? previousAttendance.filter(r => !(r.memberId === record.memberId && r.Data === record.Data))
-        : [...previousAttendance.filter(r => !(r.memberId === record.memberId && r.Data === record.Data)), newRecord];
+      // Nota: O useEffect já sincroniza, mas aqui garantimos persistência local imediata se offline/sem config
+      const updated = record.status === AttendanceStatus.NOT_REGISTERED
+        ? previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date))
+        : [...previousAttendance.filter(r => !(r.memberId === record.memberId && r.date === record.date)), newRecord];
       localStorage.setItem('church_attendance', JSON.stringify(updated));
     }
   };
@@ -216,8 +206,8 @@ export function useDataStore() {
     // Optimistic Update & LocalStorage Sync
     const newLocalState = [...attendance];
     // Remove antigos que serão atualizados
-    const keysToRemove = new Set(records.map(r => `${r.memberId}-${r.Data}`));
-    const cleanState = newLocalState.filter(r => !keysToRemove.has(`${r.memberId}-${r.Data}`));
+    const keysToRemove = new Set(records.map(r => `${r.memberId}-${r.date}`));
+    const cleanState = newLocalState.filter(r => !keysToRemove.has(`${r.memberId}-${r.date}`));
     const optimizedState = [...cleanState, ...records];
 
     setAttendance(optimizedState);
@@ -227,7 +217,7 @@ export function useDataStore() {
       try {
         const { data, error } = await supabase
           .from('attendance')
-          .upsert(records, { onConflict: 'memberId, Data' })
+          .upsert(records, { onConflict: 'memberId, date' })
           .select();
 
         if (error) throw error;
@@ -235,8 +225,8 @@ export function useDataStore() {
         // Reconciliação com dados reais do banco
         if (data) {
           setAttendance(prev => {
-            const keysToUpdate = new Set(data.map(r => `${r.memberId}-${r.Data}`));
-            const clean = prev.filter(r => !keysToUpdate.has(`${r.memberId}-${r.Data}`));
+            const keysToUpdate = new Set(data.map(r => `${r.memberId}-${r.date}`));
+            const clean = prev.filter(r => !keysToUpdate.has(`${r.memberId}-${r.date}`));
             const finalState = [...clean, ...data as AttendanceRecord[]];
             localStorage.setItem('church_attendance', JSON.stringify(finalState)); // Atualiza com dados oficiais
             return finalState;
@@ -253,20 +243,16 @@ export function useDataStore() {
     }
   };
 
-  const clearAttendanceForDate = async (date: string, unitId: string) => {
+  const clearAttendanceForDate = async (unitId: string, date: string) => {
     const previousAttendance = [...attendance];
 
-    setAttendance(prev => prev.filter(r => r.Data !== date || r.unitId !== unitId));
+    // 1. Atualiza estado local removendo registros do dia
+    setAttendance(prev => prev.filter(r => !(r.unitId === unitId && r.date === date)));
 
     if (supabase) {
-      try {
-        const { error } = await supabase
-          .from('attendance')
-          .delete()
-          .eq('Data', date)
-          .eq('unitId', unitId);
-        if (error) throw error;
-      } catch (error) {
+      // 2. Remove do banco de dados
+      const { error } = await supabase.from('attendance').delete().match({ unitId, date });
+      if (error) {
         console.error('Erro ao limpar frequência:', error);
         setAttendance(previousAttendance);
         alert('Erro ao limpar frequência do dia.');
@@ -274,7 +260,7 @@ export function useDataStore() {
       }
     } else {
       const current = JSON.parse(localStorage.getItem('church_attendance') || '[]');
-      const filtered = current.filter((r: any) => !(r.unitId === unitId && r.Data === date));
+      const filtered = current.filter((r: any) => !(r.unitId === unitId && r.date === date));
       localStorage.setItem('church_attendance', JSON.stringify(filtered));
     }
   };
