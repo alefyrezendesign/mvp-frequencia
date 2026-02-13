@@ -1,4 +1,4 @@
-const CACHE_NAME = 'church-app-v7';
+const CACHE_NAME = 'church-app-v8';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -37,9 +37,14 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request)
         .then(response => {
-          const clonedResponse = response.clone();
+          // Check if we received a valid response
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+
+          const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, clonedResponse);
+            cache.put(request, responseToCache);
           });
           return response;
         })
@@ -59,9 +64,20 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       caches.match(request).then(cachedResponse => {
         const fetchPromise = fetch(request).then(networkResponse => {
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(request, networkResponse.clone());
-          });
+          // Check if we received a valid response
+          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+            return networkResponse;
+          }
+
+          try {
+            // Clone only if not used
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(request, responseToCache);
+            });
+          } catch (e) {
+            console.warn('Failed to cache resource:', request.url, e);
+          }
           return networkResponse;
         });
         return cachedResponse || fetchPromise;
