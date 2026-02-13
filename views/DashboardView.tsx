@@ -64,10 +64,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
     });
 
     const chartData = [
-      { name: 'Perfeita', value: counts[FrequencyCategory.PERFECT], color: '#10b981' },
-      { name: 'Boa', value: counts[FrequencyCategory.GOOD], color: '#3b82f6' },
-      { name: 'Baixa', value: counts[FrequencyCategory.LOW], color: '#f59e0b' },
-      { name: 'Crítica', value: counts[FrequencyCategory.CRITICAL], color: '#ef4444' },
+      { name: 'Perfeita', value: counts[FrequencyCategory.PERFECT], color: '#10b981', colorClass: 'bg-emerald-500' },
+      { name: 'Boa', value: counts[FrequencyCategory.GOOD], color: '#3b82f6', colorClass: 'bg-blue-500' },
+      { name: 'Baixa', value: counts[FrequencyCategory.LOW], color: '#f59e0b', colorClass: 'bg-amber-500' },
+      { name: 'Crítica', value: counts[FrequencyCategory.CRITICAL], color: '#ef4444', colorClass: 'bg-red-500' },
     ];
 
     const totalPotentialAttendances = totalServices * unitMembers.length;
@@ -99,7 +99,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
         // Crítica (mais faltas) primeiro
         if (a.categoryLabel === FrequencyCategory.CRITICAL && b.categoryLabel !== FrequencyCategory.CRITICAL) return -1;
         if (a.categoryLabel !== FrequencyCategory.CRITICAL && b.categoryLabel === FrequencyCategory.CRITICAL) return 1;
-        return b.absences - a.absences;
+        return a.attendanceRate - b.attendanceRate;
       }),
     [stats.memberStats]);
 
@@ -110,23 +110,28 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
     [stats.memberStats]);
 
   return (
-    <div className="space-y-6 pb-24">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Dashboard Mensal</h2>
-        <span className="text-[10px] bg-zinc-900 border border-zinc-800 text-purple-400 px-3 py-1 rounded-full font-black uppercase tracking-widest">
-          {selectedUnit.name}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 p-4 rounded-2xl shadow-sm">
-        <button onClick={() => setSelectedMonthDate(subMonths(selectedMonthDate, 1))} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400" aria-label="Mês anterior">
-          <ChevronLeft className="w-6 h-6" />
+    <div className="space-y-6 pb-20 animate-fade-in">
+      {/* Header com Navegação de Mês */}
+      <div className="flex items-center justify-between px-1">
+        <button
+          onClick={() => setSelectedMonthDate(curr => subMonths(curr, 1))}
+          className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+        >
+          <ChevronLeft size={20} />
         </button>
         <div className="text-center">
-          <span className="text-base font-bold text-white capitalize">{format(selectedMonthDate, 'MMMM yyyy', { locale: ptBR })}</span>
+          <h2 className="text-lg font-bold text-white capitalize">
+            {format(selectedMonthDate, 'MMMM yyyy', { locale: ptBR })}
+          </h2>
+          <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
+            Visão Geral
+          </p>
         </div>
-        <button onClick={() => setSelectedMonthDate(addMonths(selectedMonthDate, 1))} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400" aria-label="Próximo mês">
-          <ChevronRight className="w-6 h-6" />
+        <button
+          onClick={() => setSelectedMonthDate(curr => addMonths(curr, 1))}
+          className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+        >
+          <ChevronRight size={20} />
         </button>
       </div>
 
@@ -137,23 +142,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
         <SummaryCard label="% Presença" value={`${stats.globalAttendanceRate.toFixed(0)}%`} icon={<Percent className="w-4 h-4 text-emerald-400" />} />
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
-        <h3 className="text-[10px] font-black text-zinc-500 mb-6 uppercase tracking-widest text-center">Saúde da Frequência</h3>
+      {/* Gráfico Geral */}
+      <div className="bg-zinc-900/50 rounded-2xl p-5 border border-zinc-800 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <TrendingUp size={80} className="text-primary-500" />
+        </div>
 
-        {/* Container com altura fixa para evitar warnings de ResponsiveContainer */}
-        <div className="h-[200px] w-full min-h-[200px] relative">
+        <div className="relative z-10 h-48 w-full flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={stats.chartData}
                 cx="50%"
                 cy="50%"
-                innerRadius={55}
-                outerRadius={75}
-                paddingAngle={8}
+                innerRadius={60}
+                outerRadius={80}
+                paddingAngle={5}
                 dataKey="value"
                 stroke="none"
-                animationDuration={800}
               >
                 {stats.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
               </Pie>
@@ -171,7 +177,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
           {stats.chartData.map(item => (
             <div key={item.name} className="flex items-center justify-between bg-zinc-800/40 p-3 rounded-xl border border-zinc-800/50">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                <div className={`w-2 h-2 rounded-full ${item.colorClass}`} />
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">{item.name}</span>
               </div>
               <div className="flex flex-col items-end">
