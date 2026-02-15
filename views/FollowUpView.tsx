@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { MessageCircle, ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, Clock, X, Copy, Check } from 'lucide-react';
+import { MessageCircle, ChevronLeft, ChevronRight, CheckCircle2, Clock, X, Copy, Check, ChevronDown } from 'lucide-react';
 import { AttendanceStatus, CabinetStatus, Unit, Member, FrequencyCategory, AttendanceRecord, CabinetFollowUp, Leader } from '../types';
 import { calculateAttendance, getValidServiceDates, getAbsenceCategory, generateWhatsAppLink } from '../utils';
 import { GENERATION_COLORS, GenerationType } from '../constants';
@@ -215,16 +215,8 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
 };
 
 const FollowUpCard = ({ member, store, currentMonthStr, onInform, resolved }: any) => {
-  const statusStyles = member.cabinetStatus === CabinetStatus.SOLUCIONADO
-    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-    : member.cabinetStatus === CabinetStatus.CONVERSA_REALIZADA
-      ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-      : member.cabinetStatus === CabinetStatus.AGUARDANDO
-        ? 'bg-zinc-800 text-zinc-400 border-zinc-700'
-        : 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-
   return (
-    <div className={`border rounded-2xl overflow-hidden shadow-xl ${resolved ? 'bg-zinc-900/40 border-emerald-900/20' : 'bg-zinc-900 border-zinc-800'}`}>
+    <div className={`border rounded-2xl shadow-xl ${resolved ? 'bg-zinc-900/40 border-emerald-900/20' : 'bg-zinc-900 border-zinc-800'}`}>
       <div className="p-4 flex justify-between items-start border-b border-zinc-800/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-black text-xs text-zinc-500">{member.name.substring(0, 2).toUpperCase()}</div>
@@ -249,20 +241,10 @@ const FollowUpCard = ({ member, store, currentMonthStr, onInform, resolved }: an
         </div>
         <div>
           <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest">Status</p>
-          <select
-            className={`w-full border rounded-xl text-[10px] py-2 px-2 font-bold outline-none appearance-none cursor-pointer ${statusStyles}`}
-            value={member.cabinetStatus}
-            onChange={(e) => store.updateCabinetStatus(member.id, currentMonthStr, e.target.value as CabinetStatus)}
-            title="Alterar Status"
-            aria-label="Alterar Status do Gabinete"
-          >
-            {/* Options atualizadas */}
-            <option value={CabinetStatus.AGUARDANDO}>Selecionar Status</option>
-            <option value={CabinetStatus.LIDER_INFORMADO}>Líder informado</option>
-            <option value={CabinetStatus.PRIMEIRO_CONTATO}>Primeiro contato - realizado</option>
-            <option value={CabinetStatus.CONVERSA_REALIZADA}>Conversa 1a1 realizada</option>
-            <option value={CabinetStatus.SOLUCIONADO}>Solucionado</option>
-          </select>
+          <StatusSelector
+            currentStatus={member.cabinetStatus}
+            onStatusChange={(newStatus) => store.updateCabinetStatus(member.id, currentMonthStr, newStatus)}
+          />
         </div>
       </div>
       <div className="px-4 pb-4">
@@ -275,3 +257,101 @@ const FollowUpCard = ({ member, store, currentMonthStr, onInform, resolved }: an
 };
 
 export default FollowUpView;
+
+const STATUS_CONFIG: Record<CabinetStatus, { color: string; label: string; percent: number; bgColor: string; widthClass: string }> = {
+  [CabinetStatus.AGUARDANDO]: {
+    color: 'text-zinc-500',
+    bgColor: 'bg-zinc-500',
+    label: 'Aguardando',
+    percent: 0,
+    widthClass: 'w-0'
+  },
+  [CabinetStatus.LIDER_INFORMADO]: {
+    color: 'text-amber-500',
+    bgColor: 'bg-amber-500',
+    label: 'Líder Informado',
+    percent: 33,
+    widthClass: 'w-1/3'
+  },
+  [CabinetStatus.PRIMEIRO_CONTATO]: {
+    color: 'text-blue-500',
+    bgColor: 'bg-blue-500',
+    label: 'Primeiro Contato',
+    percent: 66,
+    widthClass: 'w-2/3'
+  },
+  [CabinetStatus.CONVERSA_REALIZADA]: {
+    color: 'text-purple-500',
+    bgColor: 'bg-purple-500',
+    label: 'Conversa Realizada',
+    percent: 90,
+    widthClass: 'w-[90%]'
+  },
+  [CabinetStatus.SOLUCIONADO]: {
+    color: 'text-emerald-500',
+    bgColor: 'bg-emerald-500',
+    label: 'Solucionado',
+    percent: 100,
+    widthClass: 'w-full'
+  }
+};
+
+const StatusSelector = ({ currentStatus, onStatusChange }: { currentStatus: CabinetStatus, onStatusChange: (status: CabinetStatus) => void }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const config = STATUS_CONFIG[currentStatus] || STATUS_CONFIG[CabinetStatus.AGUARDANDO];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-zinc-950/50 border border-zinc-800 rounded-xl p-3 flex items-center justify-between gap-3 text-left transition-all hover:bg-zinc-900 active:scale-[0.98] group"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className={`text-[10px] font-black uppercase tracking-wider ${config.color}`}>
+              {config.label}
+            </span>
+            <span className={`text-[9px] font-bold ${config.color}`}>
+              {config.percent}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${config.bgColor} ${config.widthClass}`}
+            />
+          </div>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-zinc-600 transition-transform duration-300 group-hover:text-zinc-400 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl z-20 overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-200">
+            {Object.values(CabinetStatus).map((status) => {
+              const itemConfig = STATUS_CONFIG[status as CabinetStatus];
+              if (!itemConfig) return null;
+              const isSelected = currentStatus === status;
+
+              return (
+                <button
+                  key={status}
+                  onClick={() => { onStatusChange(status as CabinetStatus); setIsOpen(false); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-zinc-800/80 flex items-center justify-between group transition-colors ${isSelected ? 'bg-zinc-800/50' : ''}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${itemConfig.bgColor}`} />
+                    <span className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? itemConfig.color : 'text-zinc-400 group-hover:text-zinc-200'}`}>
+                      {itemConfig.label}
+                    </span>
+                  </div>
+                  {isSelected && <Check className={`w-3 h-3 ${itemConfig.color}`} />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};

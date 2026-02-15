@@ -150,7 +150,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
           <button onClick={() => handleMonthChange('prev')} className="p-2 hover:bg-zinc-900 rounded-full text-zinc-600 transition-colors" title="Mês Anterior">
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400 capitalize">
+          <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
             {monthDisplay}
           </h2>
           <button onClick={() => handleMonthChange('next')} className="p-2 hover:bg-zinc-900 rounded-full text-zinc-600 transition-colors" title="Próximo Mês">
@@ -359,7 +359,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
             <textarea autoFocus className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-sm min-h-[140px] text-white outline-none focus:ring-1 focus:ring-purple-600" placeholder="Motivo da falta..." value={justificationText} onChange={(e) => setJustificationText(e.target.value)} />
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowJustifyModal(null)} className="flex-1 py-3 text-zinc-500 font-bold uppercase text-xs hover:text-zinc-300">Cancelar</button>
-              <button onClick={() => { store.updateAttendance({ memberId: showJustifyModal, date: selectedDate, unitId: selectedUnit.id, status: AttendanceStatus.JUSTIFIED, justificationText }); setShowJustifyModal(null); setShowToast(true); }} className="flex-1 bg-purple-600 py-3 rounded-xl font-bold text-sm shadow-lg text-white uppercase text-xs hover:bg-purple-500 active:scale-95 transition-all">Confirmar</button>
+              <button onClick={() => { store.updateAttendance({ memberId: showJustifyModal, date: selectedDate, unitId: selectedUnit.id, status: AttendanceStatus.JUSTIFIED, justificationText }); setShowJustifyModal(null); setShowToast(true); }} className="flex-1 bg-purple-600 py-3 rounded-xl font-bold shadow-lg text-white uppercase text-xs hover:bg-purple-500 active:scale-95 transition-all">Confirmar</button>
             </div>
           </div>
         </div>
