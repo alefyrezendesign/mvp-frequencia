@@ -167,7 +167,8 @@ const BulkImportModal = ({ onClose, onImport, unitId, nucleos }: any) => {
             generation: matchedGeneration,
             role: 'Membro',
             unitId,
-            active: true
+            active: true,
+            startDate: new Date().toISOString().split('T')[0]
           });
         }
 
@@ -317,6 +318,7 @@ const MemberFormModal = ({ onClose, saveMember, deleteMember, initialData, unitI
     try {
       await saveMember({
         ...formData,
+        startDate: initialData?.startDate || new Date().toISOString().split('T')[0],
         id: initialData?.id || crypto.randomUUID()
       } as Member);
       onClose();

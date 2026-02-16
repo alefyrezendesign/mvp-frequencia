@@ -33,19 +33,75 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
         const records = store.attendance.filter((r: AttendanceRecord) =>
           r.memberId === m.id && r.date.startsWith(currentMonthStr)
         );
-        const stats = calculateAttendance(records, totalServices, store.settings);
+
+        // Calculate totalExpected services for this specific member based on their startDate
+        const memberValidDates = validDates.filter(d => {
+          if (!m.startDate) return true; // If no start date, count all valid dates for the unit
+          return format(d, 'yyyy-MM-dd') >= m.startDate;
+        });
+
+        const totalExpected = memberValidDates.length;
+
+        // Calculate Presences (only for dates valid for this member)
+        const presences = records.filter((r: any) =>
+          r.memberId === m.id &&
+          r.status === AttendanceStatus.PRESENT &&
+          (!m.startDate || r.date >= m.startDate)
+        ).length;
+
+        const justifications = records.filter((r: any) =>
+          r.memberId === m.id &&
+          r.status === AttendanceStatus.JUSTIFIED &&
+          (!m.startDate || r.date >= m.startDate)
+        ).length;
+
+        // Calculate Absences (considering only dates that have passed AND are valid for the member)
+        // If the record exists as ABSENT or if the date has passed and there's no record (but here the system forces a record in the App).
+        // We will rely on ABSENT records, but filter by the start date.
+
+        const absences = records.filter((r: any) =>
+          r.memberId === m.id &&
+          r.status === AttendanceStatus.ABSENT &&
+          (!m.startDate || r.date >= m.startDate)
+        ).length;
+
+        let effectivePresences = presences;
+        if (store.settings.justifiedCountsAsPresence) {
+          effectivePresences += justifications;
+        }
+
+        const percent = totalExpected > 0 ? (effectivePresences / totalExpected) * 100 : 0; // Ex: 0/0 = 100% or 0? 0/0 is technically undefined, but for UX: new member with no services = 100% or 0%? Let's go with 100% initially or -
+        const displayPercent = totalExpected === 0 ? 100 : percent;
+
         const cabinetInfo = store.cabinet.find((c: CabinetFollowUp) => c.memberId === m.id && c.period === currentMonthStr);
-        const catInfo = getAbsenceCategory(stats.absences);
 
         return {
           ...m,
-          ...stats,
-          category: catInfo,
+          stats: { presences, absences, justifications, percent: displayPercent, totalExpected },
+          category: getAbsenceCategory(absences), // Category based on absences
           cabinetStatus: cabinetInfo?.status || CabinetStatus.AGUARDANDO
         };
       })
+      .sort((a: any, b: any) => {
+        // Sort Priority:
+        // 1. Critical Status First
+        // 2. Number of Absences (Descending)
+        // 3. Name (Ascending)
+
+        const isACritical = a.category.label === FrequencyCategory.CRITICAL;
+        const isBCritical = b.category.label === FrequencyCategory.CRITICAL;
+
+        if (isACritical && !isBCritical) return -1;
+        if (!isACritical && isBCritical) return 1;
+
+        if (b.stats.absences !== a.stats.absences) {
+          return b.stats.absences - a.stats.absences;
+        }
+
+        return a.name.localeCompare(b.name);
+      })
       // Filtrar membros com 3 faltas ou mais (Categorias Baixa e Crítica)
-      .filter((m: any) => m.absences >= 3);
+      .filter((m: any) => m.stats.absences >= 3);
   }, [store.members, store.attendance, store.cabinet, store.settings, selectedUnit, currentMonthStr]);
 
   const activeFollowUps = useMemo(() =>
@@ -59,13 +115,13 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
         if (!isACritical && isBCritical) return 1;
 
         // 2. Desempate: Maior quantidade de faltas
-        return b.absences - a.absences;
+        return b.stats.absences - a.stats.absences;
       }),
     [allFollowUps]);
 
   const resolvedFollowUps = useMemo(() =>
     allFollowUps.filter((m: any) => m.cabinetStatus === CabinetStatus.SOLUCIONADO)
-      .sort((a: any, b: any) => b.absences - a.absences),
+      .sort((a: any, b: any) => b.stats.absences - a.stats.absences),
     [allFollowUps]);
 
   const handleInformLeader = (member: any) => {

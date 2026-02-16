@@ -54,8 +54,17 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
   };
 
   const unitMembers = useMemo(() =>
-    store.members.filter((m: Member) => m.unitId === selectedUnit.id && m.active),
-    [store.members, selectedUnit.id]);
+    store.members.filter((m: Member) => {
+      // Filtro de unidade e status ativo
+      if (m.unitId !== selectedUnit.id || !m.active) return false;
+
+      // Filtro de data de início (Retroatividade)
+      // Se tiver data de início, só mostrar se a data selecionada for >= data de início
+      if (m.startDate && selectedDate < m.startDate) return false;
+
+      return true;
+    }),
+    [store.members, selectedUnit.id, selectedDate]);
 
   const records = useMemo(() =>
     store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.date === selectedDate),
