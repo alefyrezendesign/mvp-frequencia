@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Check, X, MessageSquare, FileText, CheckCircle2, ChevronRight, AlertTriangle, ChevronLeft, Clock, ListChecks, Eraser, Loader2 } from 'lucide-react';
 import { AttendanceStatus, Member, Unit } from '../types';
 import { getStatusColor, getValidServiceDates } from '../utils';
@@ -134,8 +135,28 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
 
   const hasRecordsToday = records.length > 0;
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="flex flex-col gap-4">
+    <motion.div
+      className="flex flex-col gap-4"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-in slide-in-from-top duration-300">
@@ -158,7 +179,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
           </button>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 w-full md:flex-nowrap">
+        <motion.div className="flex flex-wrap justify-center gap-2 w-full md:flex-nowrap" variants={itemVariants}>
           {validDates.map(date => {
             const dStr = format(date, 'yyyy-MM-dd');
             const isActive = dStr === selectedDate;
@@ -168,9 +189,11 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
             const dayOfMonth = format(date, 'dd');
 
             return (
-              <button
+              <motion.button
                 key={dStr}
                 onClick={() => setSelectedDate(dStr)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 className={`relative flex flex-col items-center justify-center w-[calc(20%-8px)] md:w-28 aspect-square rounded-2xl transition-all duration-300 border ${isActive
                   ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-600/30 scale-105 z-10'
                   : completed
@@ -194,10 +217,10 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
                   {dayOfWeek}
                 </span>
                 <span className="text-base font-black leading-none">{dayOfMonth}</span>
-              </button>
+              </motion.button>
             );
           })}
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-5 gap-2 w-full">
           <StatCard label="Pres." value={currentAttendance.present} color="text-emerald-400" />
@@ -238,22 +261,23 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
           </div>
         </div>
 
-        <div className="space-y-3">
+        <motion.div className="space-y-3" variants={containerVariants}>
           {pendingMembers.map((member: any) => (
-            <MemberCard
-              key={member.id}
-              member={member}
-              store={store}
-              onStatusUpdate={handleStatusUpdate}
-              onJustify={() => { setShowJustifyModal(member.id); setJustificationText(''); }}
-            />
+            <motion.div key={member.id} variants={itemVariants} layout>
+              <MemberCard
+                member={member}
+                store={store}
+                onStatusUpdate={handleStatusUpdate}
+                onJustify={() => { setShowJustifyModal(member.id); setJustificationText(''); }}
+              />
+            </motion.div>
           ))}
           {pendingMembers.length === 0 && (
             <div className="py-8 text-center bg-zinc-900/10 border border-dashed border-zinc-800 rounded-3xl">
               <p className="text-[10px] text-zinc-600 font-bold uppercase">Todos os membros foram marcados!</p>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* LISTA DE CONCLUÍDOS */}
@@ -266,121 +290,158 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
             </h3>
           </div>
 
-          <div className="space-y-3 opacity-80">
+          <motion.div className="space-y-3 opacity-80" variants={containerVariants}>
             {completedMembers.map((member: any) => {
               const currentRecord = records.find((r: any) => r.memberId === member.id);
               return (
-                <MemberCard
-                  key={member.id}
-                  member={member}
-                  store={store}
-                  onStatusUpdate={handleStatusUpdate}
-                  onJustify={() => { setShowJustifyModal(member.id); setJustificationText(currentRecord?.justificationText || ''); }}
-                  showJustificationIcon={member.status === AttendanceStatus.JUSTIFIED}
-                  justificationText={currentRecord?.justificationText}
-                />
+                <motion.div key={member.id} variants={itemVariants} layout>
+                  <MemberCard
+                    member={member}
+                    store={store}
+                    onStatusUpdate={handleStatusUpdate}
+                    onJustify={() => { setShowJustifyModal(member.id); setJustificationText(currentRecord?.justificationText || ''); }}
+                    showJustificationIcon={member.status === AttendanceStatus.JUSTIFIED}
+                    justificationText={currentRecord?.justificationText}
+                  />
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* Floating Action Search Button */}
-      <button onClick={() => setIsSearchOpen(!isSearchOpen)} className={`fixed right-6 bottom-28 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isSearchOpen ? 'bg-zinc-800 rotate-90 text-zinc-100' : 'bg-purple-600 text-white shadow-purple-600/40 hover:bg-purple-500'}`} aria-label={isSearchOpen ? "Fechar Busca" : "Abrir Busca"}>
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setIsSearchOpen(!isSearchOpen)}
+        className={`fixed right-6 bottom-28 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 ${isSearchOpen ? 'bg-zinc-800 rotate-90 text-zinc-100' : 'bg-purple-600 text-white shadow-purple-600/40 hover:bg-purple-500'}`}
+        aria-label={isSearchOpen ? "Fechar Busca" : "Abrir Busca"}
+      >
         {isSearchOpen ? <X className="w-6 h-6" /> : <Search className="w-6 h-6" />}
-      </button>
+      </motion.button>
 
       {/* Modals... */}
-      {showClearModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Eraser className="w-8 h-8 text-amber-500" />
-            </div>
-            <h3 className="text-xl font-black text-white mb-2">Reiniciar Dia?</h3>
-            <p className="text-sm text-zinc-500 mb-8 font-medium">
-              Deseja <strong>reiniciar</strong> a chamada de hoje? Isso limpará todas as marcações atuais para que você possa começar de novo.
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={handleClearDay}
-                disabled={isClearing}
-                className="w-full bg-amber-600 hover:bg-amber-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, reiniciar'}
-              </button>
-              <button
-                onClick={() => setShowClearModal(false)}
-                disabled={isClearing}
-                className="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-black text-xs uppercase text-zinc-400 transition-all disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showFinalizeModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="w-8 h-8 text-amber-500" />
-            </div>
-            <h3 className="text-xl font-black text-white mb-2">Marcar Faltas?</h3>
-            <p className="text-sm text-zinc-500 mb-8 font-medium">Deseja marcar os {pendingMembers.length} membros restantes como FALTA?</p>
-            <div className="space-y-3">
-              <button onClick={async () => {
-                try {
-                  await store.batchUpdateAttendance(pendingMembers.map((m: any) => ({
-                    id: crypto.randomUUID(),
-                    memberId: m.id,
-                    date: selectedDate,
-                    unitId: selectedUnit.id,
-                    status: AttendanceStatus.ABSENT,
-                    registeredAt: Date.now()
-                  })));
-                  setShowFinalizeModal(false);
-                  setShowToast(true);
-                } catch (error) {
-                  // Erro tratado no store
-                }
-              }} className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95">Sim, marcar faltas</button>
-              <button onClick={() => setShowFinalizeModal(false)} className="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-black text-xs uppercase text-zinc-400 transition-all">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showJustifyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-zinc-900 w-full max-w-md rounded-2xl p-6 border border-zinc-800 shadow-2xl">
-            <h2 className="text-lg font-bold mb-4 text-white">Justificativa</h2>
-            <textarea autoFocus className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-sm min-h-[140px] text-white outline-none focus:ring-1 focus:ring-purple-600" placeholder="Motivo da falta..." value={justificationText} onChange={(e) => setJustificationText(e.target.value)} />
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowJustifyModal(null)} className="flex-1 py-3 text-zinc-500 font-bold uppercase text-xs hover:text-zinc-300">Cancelar</button>
-              <button onClick={() => { store.updateAttendance({ memberId: showJustifyModal, date: selectedDate, unitId: selectedUnit.id, status: AttendanceStatus.JUSTIFIED, justificationText }); setShowJustifyModal(null); setShowToast(true); }} className="flex-1 bg-purple-600 py-3 rounded-xl font-bold shadow-lg text-white uppercase text-xs hover:bg-purple-500 active:scale-95 transition-all">Confirmar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isSearchOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm pt-40 px-6 animate-in fade-in">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl max-w-lg mx-auto animate-in slide-in-from-top-4">
-            <div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-zinc-500 uppercase">Filtrar Chamada</h3><button onClick={() => setIsSearchOpen(false)} aria-label="Fechar Busca"><X className="w-4 h-4" /></button></div>
-            <div className="space-y-4">
-              <input autoFocus type="text" placeholder="Pesquisar nome..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl py-3 px-4 text-sm text-white focus:border-purple-600 outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-              <div className="grid grid-cols-2 gap-3">
-                <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterGeneration} onChange={(e) => setFilterGeneration(e.target.value)} aria-label="Filtrar por Geração"><option value="all">Todas Gerações</option>{GENERATIONS.map((g) => <option key={g} value={g}>{g}</option>)}</select>
-                <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Filtrar por Status"><option value="all">Todos Status</option>{Object.values(AttendanceStatus).map(s => <option key={s} value={s}>{s}</option>)}</select>
+      <AnimatePresence>
+        {showClearModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <Eraser className="w-8 h-8 text-amber-500" />
               </div>
-              <button onClick={() => setIsSearchOpen(false)} className="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold text-sm text-white uppercase tracking-widest active:scale-[0.98] transition-all">Ver Resultados</button>
-            </div>
+              <h3 className="text-xl font-black text-white mb-2">Reiniciar Dia?</h3>
+              <p className="text-sm text-zinc-500 mb-8 font-medium">
+                Deseja <strong>reiniciar</strong> a chamada de hoje? Isso limpará todas as marcações atuais para que você possa começar de novo.
+              </p>
+              <div className="space-y-3">
+                <button
+                  onClick={handleClearDay}
+                  disabled={isClearing}
+                  className="w-full bg-amber-600 hover:bg-amber-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isClearing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, reiniciar'}
+                </button>
+                <button
+                  onClick={() => setShowClearModal(false)}
+                  disabled={isClearing}
+                  className="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-black text-xs uppercase text-zinc-400 transition-all disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showFinalizeModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-3xl p-8 text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-black text-white mb-2">Marcar Faltas?</h3>
+              <p className="text-sm text-zinc-500 mb-8 font-medium">Deseja marcar os {pendingMembers.length} membros restantes como FALTA?</p>
+              <div className="space-y-3">
+                <button onClick={async () => {
+                  try {
+                    await store.batchUpdateAttendance(pendingMembers.map((m: any) => ({
+                      id: crypto.randomUUID(),
+                      memberId: m.id,
+                      date: selectedDate,
+                      unitId: selectedUnit.id,
+                      status: AttendanceStatus.ABSENT,
+                      registeredAt: Date.now()
+                    })));
+                    setShowFinalizeModal(false);
+                    setShowToast(true);
+                  } catch (error) {
+                    // Erro tratado no store
+                  }
+                }} className="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-2xl font-black text-xs uppercase text-white shadow-lg transition-all active:scale-95">Sim, marcar faltas</button>
+                <button onClick={() => setShowFinalizeModal(false)} className="w-full bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-black text-xs uppercase text-zinc-400 transition-all">Cancelar</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showJustifyModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-zinc-900 w-full max-w-md rounded-2xl p-6 border border-zinc-800 shadow-2xl"
+            >
+              <h2 className="text-lg font-bold mb-4 text-white">Justificativa</h2>
+              <textarea autoFocus className="w-full bg-zinc-800 border border-zinc-700 rounded-xl p-4 text-sm min-h-[140px] text-white outline-none focus:ring-1 focus:ring-purple-600" placeholder="Motivo da falta..." value={justificationText} onChange={(e) => setJustificationText(e.target.value)} />
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setShowJustifyModal(null)} className="flex-1 py-3 text-zinc-500 font-bold uppercase text-xs hover:text-zinc-300">Cancelar</button>
+                <button onClick={() => { store.updateAttendance({ memberId: showJustifyModal, date: selectedDate, unitId: selectedUnit.id, status: AttendanceStatus.JUSTIFIED, justificationText }); setShowJustifyModal(null); setShowToast(true); }} className="flex-1 bg-purple-600 py-3 rounded-xl font-bold shadow-lg text-white uppercase text-xs hover:bg-purple-500 active:scale-95 transition-all">Confirmar</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isSearchOpen && (
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm pt-40 px-6 animate-in fade-in">
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl max-w-lg mx-auto"
+            >
+              <div className="flex justify-between items-center mb-4"><h3 className="text-xs font-black text-zinc-500 uppercase">Filtrar Chamada</h3><button onClick={() => setIsSearchOpen(false)} aria-label="Fechar Busca"><X className="w-4 h-4" /></button></div>
+              <div className="space-y-4">
+                <input autoFocus type="text" placeholder="Pesquisar nome..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl py-3 px-4 text-sm text-white focus:border-purple-600 outline-none" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <div className="grid grid-cols-2 gap-3">
+                  <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterGeneration} onChange={(e) => setFilterGeneration(e.target.value)} aria-label="Filtrar por Geração"><option value="all">Todas Gerações</option>{GENERATIONS.map((g) => <option key={g} value={g}>{g}</option>)}</select>
+                  <select className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-zinc-300 outline-none" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Filtrar por Status"><option value="all">Todos Status</option>{Object.values(AttendanceStatus).map(s => <option key={s} value={s}>{s}</option>)}</select>
+                </div>
+                <button onClick={() => setIsSearchOpen(false)} className="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold text-sm text-white uppercase tracking-widest active:scale-[0.98] transition-all">Ver Resultados</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

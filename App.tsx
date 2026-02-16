@@ -8,6 +8,9 @@ import { getValidServiceDates } from './utils';
 import { supabase } from './services/supabase';
 
 // Components
+// Components
+import { AnimatePresence } from 'framer-motion';
+import PageTransition from './components/PageTransition';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
 import RegisterView from './views/RegisterView';
@@ -136,7 +139,11 @@ const App: React.FC = () => {
 
       {/* ÁREA DE CONTEÚDO COM ROLAGEM PRÓPRIA */}
       <main className="flex-1 overflow-y-auto pt-4 px-4 pb-32 md:px-8 max-w-5xl mx-auto w-full scroll-smooth">
-        {renderView()}
+        <AnimatePresence mode="wait">
+          <PageTransition key={activeTab} className="h-full">
+            {renderView()}
+          </PageTransition>
+        </AnimatePresence>
       </main>
 
       {/* NAV FIXO NA BASE */}

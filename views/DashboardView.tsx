@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { format, subMonths, addMonths, endOfMonth, eachDayOfInterval, getDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -64,10 +65,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
     });
 
     const chartData = [
-      { name: 'Perfeita', value: counts[FrequencyCategory.PERFECT], color: '#10b981', colorClass: 'bg-emerald-500' },
-      { name: 'Boa', value: counts[FrequencyCategory.GOOD], color: '#3b82f6', colorClass: 'bg-blue-500' },
-      { name: 'Baixa', value: counts[FrequencyCategory.LOW], color: '#f59e0b', colorClass: 'bg-amber-500' },
-      { name: 'Crítica', value: counts[FrequencyCategory.CRITICAL], color: '#ef4444', colorClass: 'bg-red-500' },
+      { name: 'Perfeita', value: counts[FrequencyCategory.PERFECT], color: '#10b981', colorClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
+      { name: 'Boa', value: counts[FrequencyCategory.GOOD], color: '#3b82f6', colorClass: 'bg-blue-500', textClass: 'text-blue-500' },
+      { name: 'Baixa', value: counts[FrequencyCategory.LOW], color: '#f59e0b', colorClass: 'bg-amber-500', textClass: 'text-amber-500' },
+      { name: 'Crítica', value: counts[FrequencyCategory.CRITICAL], color: '#ef4444', colorClass: 'bg-red-500', textClass: 'text-red-500' },
     ];
 
     const totalPotentialAttendances = totalServices * unitMembers.length;
@@ -109,8 +110,28 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
       .sort((a, b) => a.absences - b.absences),
     [stats.memberStats]);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="space-y-6 pb-20 animate-fade-in">
+    <motion.div
+      className="space-y-6 pb-20"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {/* Header com Navegação de Mês */}
       <div className="flex items-center justify-between px-1">
         <button
@@ -137,20 +158,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <motion.div className="grid grid-cols-2 gap-3" variants={itemVariants}>
         <SummaryCard label="Cultos" value={stats.totalServices} icon={<TrendingUp className="w-4 h-4 text-purple-400" />} />
         <SummaryCard label="Membros" value={unitMembers.length} icon={<Users className="w-4 h-4 text-blue-400" />} />
         <SummaryCard label="Justificativas" value={stats.totalJustificationsInMonth} icon={<MessageSquare className="w-4 h-4 text-amber-400" />} clickable onClick={() => setShowJustificationModal(true)} subText="Ver lista" />
         <SummaryCard label="% Presença" value={`${stats.globalAttendanceRate.toFixed(0)}%`} icon={<Percent className="w-4 h-4 text-emerald-400" />} />
-      </div>
+      </motion.div>
 
       {/* Gráfico Geral */}
-      <div className="bg-zinc-900/50 rounded-2xl p-5 border border-zinc-800 relative overflow-hidden">
+      <motion.div variants={itemVariants} className="bg-zinc-900/50 rounded-2xl p-5 border border-zinc-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <TrendingUp size={80} className="text-primary-500" />
         </div>
 
         <div className="relative z-10 h-48 w-full flex items-center justify-center">
+          {/* Texto central posicionado PRIMEIRO para ficar abaixo do gráfico (camada inferior) */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-2xl font-black text-white">{unitMembers.length}</span>
+            <span className="text-[8px] text-zinc-500 font-bold uppercase">Membros</span>
+          </div>
+
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -165,13 +192,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
               >
                 {stats.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
               </Pie>
-              <Tooltip contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                wrapperStyle={{ outline: 'none', zIndex: 1000 }}
+              />
             </PieChart>
           </ResponsiveContainer>
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-2xl font-black text-white">{unitMembers.length}</span>
-            <span className="text-[8px] text-zinc-500 font-bold uppercase">Membros</span>
-          </div>
         </div>
 
         {/* Contadores detalhados abaixo do gráfico */}
@@ -189,15 +215,19 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Lista Principal: Atenção Prioritária (Crítica e Baixa) */}
-      <div className="space-y-3">
+      <motion.div className="space-y-3" variants={itemVariants}>
         <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest px-2 flex items-center gap-2">
           <Calendar className="w-3 h-3" /> Atenção Prioritária (3+ faltas)
         </h3>
         {priorityAttention.length > 0 ? priorityAttention.map(m => (
-          <div key={m.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between">
+          <motion.div
+            key={m.id}
+            whileHover={{ scale: 1.02 }}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between"
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 font-black text-xs">
                 {m.name.substring(0, 2).toUpperCase()}
@@ -209,19 +239,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
                 </p>
               </div>
             </div>
-            <div className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${m.categoryColor} ${m.categoryBg} border border-current opacity-80`}>
-              {m.categoryLabel.split(' ')[1]}
+            <div
+              className={`relative overflow-hidden px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${m.categoryColor} ${m.categoryBg} border border-current opacity-80`}
+            >
+              <span className="relative z-10">{m.categoryLabel.split(' ')[1]}</span>
+              {m.categoryLabel === FrequencyCategory.CRITICAL && (
+                <div className="absolute inset-0 animate-shimmer pointer-events-none" />
+              )}
             </div>
-          </div>
+          </motion.div>
         )) : (
           <div className="p-8 text-center bg-zinc-900/20 border border-dashed border-zinc-800 rounded-3xl">
             <p className="text-[10px] text-zinc-600 font-bold uppercase">Nenhum membro crítico este mês</p>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Lista Secundária: Frequência Positiva (Boa e Perfeita) */}
-      <div className="space-y-3 pt-2">
+      <motion.div className="space-y-3 pt-2" variants={itemVariants}>
         <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest px-2 flex items-center gap-2">
           <CheckCircle2 className="w-3 h-3" /> Frequência Positiva (0-2 faltas)
         </h3>
@@ -245,11 +280,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {showJustificationModal && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+          >
             <div className="p-6 border-b border-zinc-800 flex items-center justify-between">
               <h3 className="font-bold text-lg">Justificativas</h3>
               <button onClick={() => setShowJustificationModal(false)} className="p-2 bg-zinc-800 rounded-full text-zinc-400" aria-label="Fechar modal"><X className="w-5 h-5" /></button>
@@ -269,10 +309,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ store, selectedUnit }) =>
                 <div className="py-10 text-center text-zinc-500">Nenhuma justificativa neste mês.</div>
               )}
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 
@@ -293,6 +333,28 @@ const getValidServiceDates = (unitId: string, monthStr: string, serviceDays: num
   const end = endOfMonth(start);
   const days = eachDayOfInterval({ start, end });
   return days.filter(day => serviceDays.includes(getDay(day)));
+};
+
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="bg-black/90 backdrop-blur-sm border border-zinc-800 p-4 rounded-xl shadow-2xl min-w-[120px]">
+        <h4 className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mb-1">{data.name}</h4>
+        <div className="flex items-center gap-2">
+          <div
+            className={`w-2 h-2 rounded-full ${data.payload.colorClass}`}
+          />
+          <span
+            className={`text-lg font-black leading-none ${data.payload.textClass}`}
+          >
+            {data.value}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
 };
 
 export default DashboardView;

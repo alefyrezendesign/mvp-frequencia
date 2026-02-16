@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, ChevronLeft, ChevronRight, CheckCircle2, Clock, X, Copy, Check, ChevronDown } from 'lucide-react';
 import { AttendanceStatus, CabinetStatus, Unit, Member, FrequencyCategory, AttendanceRecord, CabinetFollowUp, Leader } from '../types';
 import { calculateAttendance, getValidServiceDates, getAbsenceCategory, generateWhatsAppLink } from '../utils';
@@ -49,7 +50,17 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
 
   const activeFollowUps = useMemo(() =>
     allFollowUps.filter((m: any) => m.cabinetStatus !== CabinetStatus.SOLUCIONADO)
-      .sort((a: any, b: any) => b.absences - a.absences),
+      .sort((a: any, b: any) => {
+        // 1. Prioridade: Frequência CRÍTICA vem sempre primeiro
+        const isACritical = a.category.label === FrequencyCategory.CRITICAL;
+        const isBCritical = b.category.label === FrequencyCategory.CRITICAL;
+
+        if (isACritical && !isBCritical) return -1;
+        if (!isACritical && isBCritical) return 1;
+
+        // 2. Desempate: Maior quantidade de faltas
+        return b.absences - a.absences;
+      }),
     [allFollowUps]);
 
   const resolvedFollowUps = useMemo(() =>
@@ -94,8 +105,28 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="space-y-6 pb-24">
+    <motion.div
+      className="space-y-6 pb-24"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Acompanhar</h2>
         <span className="text-[10px] bg-zinc-900 border border-zinc-800 text-purple-400 px-3 py-1 rounded-full font-black uppercase tracking-widest">
@@ -115,28 +146,29 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
         </button>
       </div>
 
-      <div className="space-y-4">
+      <motion.div className="space-y-4" variants={itemVariants}>
         <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-2 px-2">
           <Clock className="w-3 h-3" /> Demandas Ativas ({activeFollowUps.length})
         </h3>
         {activeFollowUps.map((member: any) => (
-          <FollowUpCard
-            key={member.id}
-            member={member}
-            store={store}
-            currentMonthStr={currentMonthStr}
-            onInform={handleInformLeader}
-          />
+          <motion.div key={member.id} layout>
+            <FollowUpCard
+              member={member}
+              store={store}
+              currentMonthStr={currentMonthStr}
+              onInform={handleInformLeader}
+            />
+          </motion.div>
         ))}
         {activeFollowUps.length === 0 && (
           <div className="py-12 text-center text-zinc-600 bg-zinc-900/20 border border-dashed border-zinc-800 rounded-3xl">
             Nenhuma demanda pendente
           </div>
         )}
-      </div>
+      </motion.div>
 
       {resolvedFollowUps.length > 0 && (
-        <div className="space-y-4 pt-4">
+        <motion.div className="space-y-4 pt-4" variants={itemVariants}>
           <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2 px-2">
             <CheckCircle2 className="w-3 h-3" /> Resolvidos ({resolvedFollowUps.length})
           </h3>
@@ -150,67 +182,74 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
               resolved
             />
           ))}
-        </div>
+        </motion.div>
       )}
 
       {/* Modal de Cópia de Mensagem */}
-      {copyModalData.isOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-black text-white tracking-tight">Mensagem para o Pastor</h3>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Copie e cole no WhatsApp</p>
+      <AnimatePresence>
+        {copyModalData.isOpen && (
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-zinc-900 border border-zinc-800 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h3 className="text-xl font-black text-white tracking-tight">Mensagem para o Pastor</h3>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Copie e cole no WhatsApp</p>
+                </div>
+                <button
+                  onClick={() => setCopyModalData(prev => ({ ...prev, isOpen: false }))}
+                  className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
+                  title="Fechar"
+                  aria-label="Fechar"
+                >
+                  <X className="w-5 h-5 text-zinc-500" />
+                </button>
               </div>
-              <button
-                onClick={() => setCopyModalData(prev => ({ ...prev, isOpen: false }))}
-                className="p-2 hover:bg-zinc-800 rounded-full transition-colors"
-                title="Fechar"
-                aria-label="Fechar"
-              >
-                <X className="w-5 h-5 text-zinc-500" />
-              </button>
-            </div>
 
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 mb-8">
-              <textarea
-                readOnly
-                value={copyModalData.text}
-                className="w-full bg-transparent text-xs sm:text-sm text-zinc-300 font-medium leading-relaxed resize-none outline-none min-h-[220px] custom-scrollbar"
-                title="Texto da mensagem"
-                aria-label="Texto da mensagem whatsapp"
-              />
-            </div>
+              <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 mb-8">
+                <textarea
+                  readOnly
+                  value={copyModalData.text}
+                  className="w-full bg-transparent text-xs sm:text-sm text-zinc-300 font-medium leading-relaxed resize-none outline-none min-h-[220px] custom-scrollbar"
+                  title="Texto da mensagem"
+                  aria-label="Texto da mensagem whatsapp"
+                />
+              </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCopyModalData(prev => ({ ...prev, isOpen: false }))}
-                className="flex-1 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest"
-              >
-                Fechar
-              </button>
-              <button
-                onClick={handleCopyText}
-                className={`flex-[2] py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${copyModalData.copied
-                  ? 'bg-emerald-600 text-white shadow-emerald-600/20'
-                  : 'bg-purple-600 text-white shadow-purple-600/20 hover:bg-purple-500'
-                  }`}
-              >
-                {copyModalData.copied ? (
-                  <>
-                    <Check className="w-4 h-4" /> Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" /> Copiar Mensagem
-                  </>
-                )}
-              </button>
-            </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCopyModalData(prev => ({ ...prev, isOpen: false }))}
+                  className="flex-1 py-4 text-xs font-black text-zinc-500 uppercase tracking-widest"
+                >
+                  Fechar
+                </button>
+                <button
+                  onClick={handleCopyText}
+                  className={`flex-[2] py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${copyModalData.copied
+                    ? 'bg-emerald-600 text-white shadow-emerald-600/20'
+                    : 'bg-purple-600 text-white shadow-purple-600/20 hover:bg-purple-500'
+                    }`}
+                >
+                  {copyModalData.copied ? (
+                    <>
+                      <Check className="w-4 h-4" /> Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" /> Copiar Mensagem
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -227,8 +266,13 @@ const FollowUpCard = ({ member, store, currentMonthStr, onInform, resolved }: an
             </span>
           </div>
         </div>
-        <div className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${member.category.color} ${member.category.bg} border border-current opacity-70`}>
-          {member.category.label.split(' ')[1]}
+        <div
+          className={`relative overflow-hidden px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${member.category.color} ${member.category.bg} border border-current opacity-70`}
+        >
+          <span className="relative z-10">{member.category.label.split(' ')[1]}</span>
+          {member.category.label === FrequencyCategory.CRITICAL && (
+            <div className="absolute inset-0 animate-shimmer pointer-events-none" />
+          )}
         </div>
       </div>
       <div className="p-4 grid grid-cols-2 gap-4">
