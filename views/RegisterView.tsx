@@ -82,8 +82,14 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
   }, [records, unitMembers]);
 
   const isDateCompleted = (dateStr: string) => {
+    // Calcular membros esperados para ESTA data específica (respeitando startDate)
+    const expectedMembers = store.members.filter((m: Member) => {
+      if (m.unitId !== selectedUnit.id || !m.active) return false;
+      if (m.startDate && dateStr < m.startDate) return false;
+      return true;
+    });
     const count = store.attendance.filter((r: any) => r.unitId === selectedUnit.id && r.date === dateStr).length;
-    return unitMembers.length > 0 && count >= unitMembers.length;
+    return expectedMembers.length > 0 && count >= expectedMembers.length;
   };
 
   const dateHasJustification = (dateStr: string) => {
