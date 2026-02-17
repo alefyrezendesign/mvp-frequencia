@@ -327,7 +327,6 @@ export function useDataStore() {
       } catch (error: any) {
         console.error('Erro ao salvar membro:', error);
         setMembers(previousMembers);
-        // Importante: lançar erro para a UI tratar (ex: mostrar mensagem específica)
         alert(`Erro ao salvar membro: ${error.message || 'Erro desconhecido'}`);
         throw error;
       }
