@@ -60,7 +60,7 @@ const RegisterView: React.FC<RegisterViewProps> = ({ store, selectedUnit, select
 
       // Filtro de data de início (Retroatividade)
       // Se tiver data de início, só mostrar se a data selecionada for >= data de início
-      if (m.startDate && selectedDate < m.startDate) return false;
+      if (m.start_date && selectedDate < m.start_date) return false;
 
       return true;
     }),

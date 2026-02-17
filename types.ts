@@ -53,7 +53,7 @@ export interface Member {
   unitId: string;
   active: boolean;
   notes?: string;
-  startDate?: string; // YYYY-MM-DD
+  start_date?: string; // YYYY-MM-DD
 }
 
 export interface AttendanceRecord {

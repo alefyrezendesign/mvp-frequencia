@@ -34,10 +34,10 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
           r.memberId === m.id && r.date.startsWith(currentMonthStr)
         );
 
-        // Calculate totalExpected services for this specific member based on their startDate
+        // Calculate totalExpected services for this specific member based on their start_date
         const memberValidDates = validDates.filter(d => {
-          if (!m.startDate) return true; // If no start date, count all valid dates for the unit
-          return format(d, 'yyyy-MM-dd') >= m.startDate;
+          if (!m.start_date) return true; // If no start date, count all valid dates for the unit
+          return format(d, 'yyyy-MM-dd') >= m.start_date;
         });
 
         const totalExpected = memberValidDates.length;
@@ -46,13 +46,13 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
         const presences = records.filter((r: any) =>
           r.memberId === m.id &&
           r.status === AttendanceStatus.PRESENT &&
-          (!m.startDate || r.date >= m.startDate)
+          (!m.start_date || r.date >= m.start_date)
         ).length;
 
         const justifications = records.filter((r: any) =>
           r.memberId === m.id &&
           r.status === AttendanceStatus.JUSTIFIED &&
-          (!m.startDate || r.date >= m.startDate)
+          (!m.start_date || r.date >= m.start_date)
         ).length;
 
         // Calculate Absences (considering only dates that have passed AND are valid for the member)
@@ -62,7 +62,7 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
         const absences = records.filter((r: any) =>
           r.memberId === m.id &&
           r.status === AttendanceStatus.ABSENT &&
-          (!m.startDate || r.date >= m.startDate)
+          (!m.start_date || r.date >= m.start_date)
         ).length;
 
         let effectivePresences = presences;
