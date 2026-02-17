@@ -335,7 +335,7 @@ const FollowUpCard = ({ member, store, currentMonthStr, onInform, resolved }: an
         <div>
           <p className="text-[9px] text-zinc-500 uppercase font-black tracking-widest">Faltas no Mês</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black text-rose-500">{member.absences}</span>
+            <span className="text-xl font-black text-rose-500">{member.stats.absences}</span>
             <span className="text-[10px] text-zinc-600 font-bold uppercase">faltas</span>
           </div>
         </div>
