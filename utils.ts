@@ -119,9 +119,9 @@ Passando para informar a frequência de:
 *${memberName} (${role})* na unidade *${unitName}.*
 
 No mês de ${period}, tivemos:
-* ${stats.absences} faltas
-* ${stats.presences} presenças
-* ${stats.justifications} justificativas
+• ${stats.absences} faltas
+• ${stats.presences} presenças
+• ${stats.justifications} justificativas
 
 Sinalizado como: ${category}
 Percentual de faltas: ${faultPercent.toFixed(0)}%
