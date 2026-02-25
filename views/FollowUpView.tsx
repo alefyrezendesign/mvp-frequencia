@@ -142,7 +142,7 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
       member.role || 'Membro', // Passando Cargo (Role)
       selectedUnit.name,
       format(selectedMonthDate, 'MMMM/yyyy', { locale: ptBR }),
-      { presences: member.presences, absences: member.absences, justifications: member.justifications, percent: member.percent },
+      member.stats,
       member.category.label
     );
 
