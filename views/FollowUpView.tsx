@@ -1,7 +1,7 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, ChevronLeft, ChevronRight, CheckCircle2, Clock, X, Copy, Check, ChevronDown } from 'lucide-react';
+import { MessageCircle, ChevronLeft, ChevronRight, CheckCircle2, Clock, X, Copy, Check, ChevronDown, Search } from 'lucide-react';
 import { AttendanceStatus, CabinetStatus, Unit, Member, FrequencyCategory, AttendanceRecord, CabinetFollowUp, Leader } from '../types';
 import { calculateAttendance, getValidServiceDates, getAbsenceCategory, generateWhatsAppLink } from '../utils';
 import { GENERATION_COLORS, GenerationType } from '../constants';
@@ -15,11 +15,20 @@ interface FollowUpViewProps {
 
 const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
   const [selectedMonthDate, setSelectedMonthDate] = useState(new Date());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [copyModalData, setCopyModalData] = useState<{ isOpen: boolean; text: string; copied: boolean }>({
     isOpen: false,
     text: '',
     copied: false
   });
+
+  useEffect(() => {
+    if (isSearchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearchOpen]);
 
   const currentMonthStr = format(selectedMonthDate, 'yyyy-MM');
 
@@ -100,29 +109,34 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
 
         return a.name.localeCompare(b.name);
       })
-      // Filtrar membros com 3 faltas ou mais (Categorias Baixa e Crítica)
-      .filter((m: any) => m.stats.absences >= 3);
+      // Filtrar somente membros com frequência CRÍTICA (5+ faltas)
+      .filter((m: any) => m.category.label === FrequencyCategory.CRITICAL);
   }, [store.members, store.attendance, store.cabinet, store.settings, selectedUnit, currentMonthStr]);
+
+  const normalizedSearch = searchTerm.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   const activeFollowUps = useMemo(() =>
     allFollowUps.filter((m: any) => m.cabinetStatus !== CabinetStatus.SOLUCIONADO)
+      .filter((m: any) => {
+        if (!normalizedSearch) return true;
+        const name = m.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return name.includes(normalizedSearch);
+      })
       .sort((a: any, b: any) => {
-        // 1. Prioridade: Frequência CRÍTICA vem sempre primeiro
-        const isACritical = a.category.label === FrequencyCategory.CRITICAL;
-        const isBCritical = b.category.label === FrequencyCategory.CRITICAL;
-
-        if (isACritical && !isBCritical) return -1;
-        if (!isACritical && isBCritical) return 1;
-
-        // 2. Desempate: Maior quantidade de faltas
+        // Desempate: Maior quantidade de faltas
         return b.stats.absences - a.stats.absences;
       }),
-    [allFollowUps]);
+    [allFollowUps, normalizedSearch]);
 
   const resolvedFollowUps = useMemo(() =>
     allFollowUps.filter((m: any) => m.cabinetStatus === CabinetStatus.SOLUCIONADO)
+      .filter((m: any) => {
+        if (!normalizedSearch) return true;
+        const name = m.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return name.includes(normalizedSearch);
+      })
       .sort((a: any, b: any) => b.stats.absences - a.stats.absences),
-    [allFollowUps]);
+    [allFollowUps, normalizedSearch]);
 
   const handleInformLeader = (member: any) => {
     // 1. Identificar Líder da Geração + Unidade
@@ -199,6 +213,57 @@ const FollowUpView: React.FC<FollowUpViewProps> = ({ store, selectedUnit }) => {
         </div>
         <button onClick={() => setSelectedMonthDate(addMonths(selectedMonthDate, 1))} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400" title="Próximo Mês" aria-label="Próximo Mês">
           <ChevronRight className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Barra de Pesquisa */}
+      <div className="flex items-center gap-3">
+        <AnimatePresence>
+          {isSearchOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: '100%', opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="flex-1 overflow-hidden"
+            >
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por nome..."
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-3 pl-11 pr-10 text-sm text-white placeholder:text-zinc-600 outline-none focus:border-purple-500/50 transition-colors"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-zinc-800 rounded-full transition-colors"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="w-3.5 h-3.5 text-zinc-500" />
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <button
+          onClick={() => {
+            setIsSearchOpen(!isSearchOpen);
+            if (isSearchOpen) setSearchTerm('');
+          }}
+          className={`p-3 rounded-2xl border transition-all shrink-0 ${
+            isSearchOpen
+              ? 'bg-purple-600/10 border-purple-500/30 text-purple-400'
+              : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300'
+          }`}
+          aria-label="Pesquisar"
+          title="Pesquisar por nome"
+        >
+          <Search className="w-5 h-5" />
         </button>
       </div>
 
